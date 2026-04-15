@@ -1,0 +1,43 @@
+---
+- name: Asegurar que Chocolatey está instalado
+  chocolatey.chocolatey.win_chocolatey:
+    name: chocolatey
+    state: present
+
+- name: Instalar MariaDB (Windows)
+  chocolatey.chocolatey.win_chocolatey:
+    name: mariadb
+    state: present
+
+- name: Habilitar y arrancar MariaDB
+  ansible.windows.win_service:
+    name: "{{ mariadb_service_name_windows }}"
+    start_mode: auto
+    state: started
+
+- name: Crear bases de datos (Windows)
+  community.mysql.mysql_db:
+    name: "{{ item.name }}"
+    encoding: "{{ item.encoding | default('utf8mb4') }}"
+    collation: "{{ item.collation | default('utf8mb4_unicode_ci') }}"
+    login_host: localhost
+    login_port: "{{ mariadb_port }}"
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    state: present
+  loop: "{{ mariadb_databases }}"
+  when: mariadb_databases | length > 0
+
+- name: Crear usuarios (Windows)
+  community.mysql.mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    host: "{{ item.host | default('localhost') }}"
+    priv: "{{ item.priv | default('*.*:USAGE') }}"
+    login_host: localhost
+    login_port: "{{ mariadb_port }}"
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ mariadb_users }}"
+  when: mariadb_users | length > 0

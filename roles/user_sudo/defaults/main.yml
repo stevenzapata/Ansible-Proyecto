@@ -1,0 +1,39 @@
+---
+# ── Linux (sudoers) ──────────────────────────────────────────────────────────
+# Usuarios con permisos sudo individuales
+sudo_users: []
+# Ejemplo:
+# sudo_users:
+#   - name: deployer
+#     nopasswd: true          # sin contraseña para sudo
+#     commands: ALL           # comandos permitidos (ALL o lista separada por comas)
+#   - name: monitor
+#     nopasswd: false
+#     commands: /usr/bin/systemctl status *, /usr/bin/journalctl
+
+# Grupos con permisos sudo
+sudo_groups: []
+# Ejemplo:
+# sudo_groups:
+#   - name: developers
+#     nopasswd: false
+#     commands: ALL
+#   - name: ops
+#     nopasswd: true
+#     commands: /usr/bin/docker, /usr/bin/systemctl
+
+# ── Windows (grupo Administradores) ──────────────────────────────────────────
+# Usuarios a añadir al grupo Administradores local
+sudo_windows_admin_users: []
+# Ejemplo:
+# sudo_windows_admin_users:
+#   - deployer
+#   - ops_user
+
+# Usuarios a añadir a grupos específicos de Windows
+sudo_windows_group_members: []
+# Ejemplo:
+# sudo_windows_group_members:
+#   - group: "Remote Desktop Users"
+#     members:
+#       - deployer

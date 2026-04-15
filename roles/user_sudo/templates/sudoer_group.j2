@@ -1,0 +1,2 @@
+# Ansible managed — rol user_sudo
+%{{ item.name }} ALL=(ALL) {% if item.nopasswd | default(false) %}NOPASSWD: {% endif %}{{ item.commands | default('ALL') }}

@@ -1,0 +1,31 @@
+---
+- name: Verificar que el recurso compartido remoto está definido
+  ansible.builtin.assert:
+    that:
+      - backup_remote_share_windows | length > 0
+    fail_msg: "La variable 'backup_remote_share_windows' está vacía. Define el recurso UNC de backup (ej: \\\\servidor\\backup)."
+
+- name: Mapear unidad de red remota
+  community.windows.win_mapped_drive:
+    letter: B
+    path: "{{ backup_remote_share_windows }}"
+    username: "{{ backup_remote_user_windows | default(omit) }}"
+    password: "{{ backup_remote_password_windows | default(omit) }}"
+    state: present
+
+- name: Programar backup remoto con Task Scheduler
+  community.windows.win_scheduled_task:
+    name: BackupRemote
+    description: "Backup remoto automático vía robocopy"
+    actions:
+      - path: cmd.exe
+        arguments: >-
+          /c robocopy {{ backup_remote_sources | join(' B:\\') | prepend(' ') }}
+          B:\{{ inventory_hostname }}
+          {{ backup_remote_robocopy_opts }}
+    triggers:
+      - type: daily
+        start_boundary: "2000-01-01T{{ backup_remote_schedule.hour | zfill(2) }}:{{ backup_remote_schedule.minute | zfill(2) }}:00"
+    run_level: highest
+    state: present
+    enabled: true

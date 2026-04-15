@@ -1,0 +1,23 @@
+---
+- name: Crear o eliminar usuarios del sistema
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    password: "{{ item.password | default(omit) }}"
+    groups: "{{ item.groups | default([]) }}"
+    append: true
+    shell: "{{ item.shell | default('/bin/bash') }}"
+    comment: "{{ item.comment | default('') }}"
+    home: "{{ item.home | default(omit) }}"
+    create_home: "{{ item.create_home | default(true) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ system_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Bloquear contraseña de usuarios sin password definido
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    password_lock: true
+  loop: "{{ system_users | selectattr('password', 'undefined') | selectattr('state', 'equalto', 'present') | list }}"
+  loop_control:
+    label: "{{ item.name }}"

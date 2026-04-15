@@ -1,0 +1,40 @@
+---
+- name: Asegurar que Chocolatey está instalado
+  chocolatey.chocolatey.win_chocolatey:
+    name: chocolatey
+    state: present
+
+- name: Instalar PostgreSQL (Windows)
+  chocolatey.chocolatey.win_chocolatey:
+    name: postgresql{{ postgresql_version }}
+    state: present
+
+- name: Habilitar y arrancar PostgreSQL
+  ansible.windows.win_service:
+    name: "{{ postgresql_service_name_windows }}"
+    start_mode: auto
+    state: started
+
+- name: Crear bases de datos (Windows)
+  community.postgresql.postgresql_db:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner | default(omit) }}"
+    encoding: "{{ item.encoding | default('UTF8') }}"
+    login_host: localhost
+    login_port: "{{ postgresql_port }}"
+    login_user: postgres
+    state: present
+  loop: "{{ postgresql_databases }}"
+  when: postgresql_databases | length > 0
+
+- name: Crear usuarios (Windows)
+  community.postgresql.postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    role_attr_flags: "{{ item.role_attr_flags | default('NOSUPERUSER,NOCREATEDB') }}"
+    login_host: localhost
+    login_port: "{{ postgresql_port }}"
+    login_user: postgres
+    state: present
+  loop: "{{ postgresql_users }}"
+  when: postgresql_users | length > 0

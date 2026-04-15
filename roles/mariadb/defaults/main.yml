@@ -1,0 +1,33 @@
+---
+# ── Compartido ───────────────────────────────────────────────────────────────
+mariadb_port: 3306
+mariadb_bind_address: "127.0.0.1"
+
+# Contraseña de root (usar Ansible Vault en producción)
+mariadb_root_password: ""
+
+# Bases de datos a crear
+mariadb_databases: []
+# Ejemplo:
+# mariadb_databases:
+#   - name: miapp
+#     encoding: utf8mb4
+#     collation: utf8mb4_unicode_ci
+
+# Usuarios a crear
+mariadb_users: []
+# Ejemplo:
+# mariadb_users:
+#   - name: appuser
+#     password: "{{ vault_db_password }}"
+#     host: localhost
+#     priv: "miapp.*:ALL"
+#     state: present
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+mariadb_package: mariadb-server        # En RedHat: mariadb-server
+mariadb_service_name: mariadb          # En RedHat: mariadb
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+mariadb_service_name_windows: MySQL
+mariadb_install_dir_windows: 'C:\Program Files\MariaDB'

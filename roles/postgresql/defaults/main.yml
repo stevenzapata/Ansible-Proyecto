@@ -1,0 +1,29 @@
+---
+# ── Compartido ───────────────────────────────────────────────────────────────
+postgresql_version: "16"
+postgresql_port: 5432
+
+# Bases de datos a crear
+postgresql_databases: []
+# Ejemplo:
+# postgresql_databases:
+#   - name: miapp
+#     owner: appuser
+#     encoding: UTF8
+
+# Usuarios a crear
+postgresql_users: []
+# Ejemplo:
+# postgresql_users:
+#   - name: appuser
+#     password: "{{ vault_pg_password }}"
+#     role_attr_flags: NOSUPERUSER,NOCREATEDB
+#     db: miapp               # base de datos sobre la que tiene privilegios
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+postgresql_listen_addresses: localhost
+postgresql_max_connections: 100
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+postgresql_service_name_windows: "postgresql-x64-{{ postgresql_version }}"
+postgresql_data_dir_windows: "C:\\Program Files\\PostgreSQL\\{{ postgresql_version }}\\data"

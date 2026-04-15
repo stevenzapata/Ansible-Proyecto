@@ -1,0 +1,34 @@
+---
+# ── Compartido ───────────────────────────────────────────────────────────────
+# Reglas de firewall a aplicar en el host
+firewall_rules: []
+# Ejemplo:
+# firewall_rules:
+#   - port: 22
+#     proto: tcp
+#     direction: in
+#     action: allow
+#     comment: SSH
+#   - port: 80
+#     proto: tcp
+#     direction: in
+#     action: allow
+#     comment: HTTP
+#   - port: 443
+#     proto: tcp
+#     direction: in
+#     action: allow
+#     comment: HTTPS
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+# Políticas por defecto (ufw y firewalld)
+firewall_default_input: deny
+firewall_default_output: allow
+firewall_default_forward: deny
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+# Perfiles de Windows Firewall a habilitar
+firewall_windows_profiles:
+  - Domain
+  - Private
+  - Public

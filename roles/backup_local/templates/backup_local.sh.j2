@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Backup local generado por Ansible — rol backup_local
+set -euo pipefail
+
+DEST="{{ backup_local_destination }}/$(date +%Y-%m-%d_%H%M%S)"
+SOURCES="{{ backup_local_sources | join(' ') }}"
+
+mkdir -p "$DEST"
+
+for SRC in $SOURCES; do
+  rsync {{ backup_local_rsync_opts }} "$SRC" "$DEST/"
+  echo "[$(date '+%F %T')] OK: $SRC → $DEST"
+done
+
+echo "[$(date '+%F %T')] Backup completado en $DEST"

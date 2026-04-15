@@ -1,0 +1,44 @@
+---
+- name: Crear directorio de destino (Windows)
+  ansible.windows.win_file:
+    path: "{{ backup_local_destination_windows }}"
+    state: directory
+
+- name: Desplegar script de backup PowerShell
+  ansible.windows.win_template:
+    src: backup_local.ps1.j2
+    dest: "{{ backup_local_destination_windows }}\\backup_local.ps1"
+
+- name: Programar backup con Task Scheduler
+  community.windows.win_scheduled_task:
+    name: BackupLocal
+    description: "Backup local automático"
+    actions:
+      - path: powershell.exe
+        arguments: >-
+          -NonInteractive -ExecutionPolicy Bypass
+          -File "{{ backup_local_destination_windows }}\backup_local.ps1"
+    triggers:
+      - type: daily
+        start_boundary: "2000-01-01T{{ backup_local_schedule.hour | zfill(2) }}:{{ backup_local_schedule.minute | zfill(2) }}:00"
+    run_level: highest
+    state: present
+    enabled: true
+
+- name: Programar limpieza de backups antiguos
+  community.windows.win_scheduled_task:
+    name: BackupLocalCleanup
+    description: "Limpieza de backups locales antiguos"
+    actions:
+      - path: powershell.exe
+        arguments: >-
+          -NonInteractive -ExecutionPolicy Bypass -Command
+          "Get-ChildItem '{{ backup_local_destination_windows }}' -Directory |
+          Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-{{ backup_local_retention_days }}) } |
+          Remove-Item -Recurse -Force"
+    triggers:
+      - type: daily
+        start_boundary: "2000-01-01T04:00:00"
+    run_level: highest
+    state: present
+    enabled: true

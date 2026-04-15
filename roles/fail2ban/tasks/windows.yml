@@ -1,0 +1,39 @@
+---
+# IPBan: equivalente a fail2ban para Windows
+# https://github.com/DigitalRuby/IPBan
+- name: Crear directorio de instalación de IPBan
+  ansible.windows.win_file:
+    path: "{{ ipban_install_dir_windows }}"
+    state: directory
+
+- name: Descargar IPBan
+  ansible.windows.win_get_url:
+    url: https://github.com/DigitalRuby/IPBan/releases/latest/download/IPBan-Windows-x64.zip
+    dest: "{{ ipban_install_dir_windows }}\\IPBan.zip"
+
+- name: Descomprimir IPBan
+  community.windows.win_unzip:
+    src: "{{ ipban_install_dir_windows }}\\IPBan.zip"
+    dest: "{{ ipban_install_dir_windows }}"
+    creates: "{{ ipban_install_dir_windows }}\\DigitalRuby.IPBan.exe"
+
+- name: Desplegar configuración de IPBan
+  ansible.windows.win_template:
+    src: ipban_config.xml.j2
+    dest: "{{ ipban_install_dir_windows }}\\ipban.config.xml"
+  notify: Reiniciar IPBan Windows
+
+- name: Instalar IPBan como servicio Windows
+  ansible.windows.win_shell: |
+    $svc = Get-Service -Name "IPBan" -ErrorAction SilentlyContinue
+    if (-not $svc) {
+      & "{{ ipban_install_dir_windows }}\DigitalRuby.IPBan.exe" --install
+    }
+  args:
+    creates: "{{ ipban_install_dir_windows }}\\DigitalRuby.IPBan.exe"
+
+- name: Habilitar y arrancar IPBan
+  ansible.windows.win_service:
+    name: IPBan
+    start_mode: auto
+    state: started

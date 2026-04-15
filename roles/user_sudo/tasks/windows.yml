@@ -1,0 +1,17 @@
+---
+- name: Añadir usuarios al grupo Administradores (Windows)
+  ansible.windows.win_group_membership:
+    name: Administrators
+    members: "{{ sudo_windows_admin_users }}"
+    state: present
+  when: sudo_windows_admin_users | length > 0
+
+- name: Añadir usuarios a grupos específicos (Windows)
+  ansible.windows.win_group_membership:
+    name: "{{ item.group }}"
+    members: "{{ item.members }}"
+    state: present
+  loop: "{{ sudo_windows_group_members }}"
+  loop_control:
+    label: "{{ item.group }}"
+  when: sudo_windows_group_members | length > 0

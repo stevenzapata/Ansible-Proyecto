@@ -1,0 +1,70 @@
+---
+- name: Instalar MariaDB y dependencias Python (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - "{{ mariadb_package }}"
+      - python3-pymysql
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: Instalar MariaDB y dependencias Python (RedHat/CentOS)
+  ansible.builtin.dnf:
+    name:
+      - mariadb-server
+      - python3-PyMySQL
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Habilitar y arrancar MariaDB
+  ansible.builtin.service:
+    name: "{{ mariadb_service_name }}"
+    state: started
+    enabled: true
+
+- name: Establecer contraseña de root
+  community.mysql.mysql_user:
+    name: root
+    password: "{{ mariadb_root_password }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    host_all: true
+    state: present
+  when: mariadb_root_password | length > 0
+
+- name: Eliminar usuarios anónimos
+  community.mysql.mysql_user:
+    name: ""
+    host_all: true
+    state: absent
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+
+- name: Eliminar base de datos test
+  community.mysql.mysql_db:
+    name: test
+    state: absent
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+
+- name: Crear bases de datos
+  community.mysql.mysql_db:
+    name: "{{ item.name }}"
+    encoding: "{{ item.encoding | default('utf8mb4') }}"
+    collation: "{{ item.collation | default('utf8mb4_unicode_ci') }}"
+    state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+  loop: "{{ mariadb_databases }}"
+  when: mariadb_databases | length > 0
+
+- name: Crear usuarios
+  community.mysql.mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    host: "{{ item.host | default('localhost') }}"
+    priv: "{{ item.priv | default('*.*:USAGE') }}"
+    state: "{{ item.state | default('present') }}"
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+  loop: "{{ mariadb_users }}"
+  when: mariadb_users | length > 0

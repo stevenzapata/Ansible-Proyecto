@@ -1,0 +1,55 @@
+---
+# ── Debian/Ubuntu: ufw ────────────────────────────────────────────────────────
+- name: Instalar ufw (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Establecer política por defecto (ufw)
+  community.general.ufw:
+    default: "{{ firewall_default_input }}"
+    direction: incoming
+  when: ansible_os_family == "Debian"
+
+- name: Aplicar reglas de firewall (ufw)
+  community.general.ufw:
+    rule: "{{ item.action | default('allow') }}"
+    port: "{{ item.port | string }}"
+    proto: "{{ item.proto | default('tcp') }}"
+    direction: "{{ item.direction | default('in') }}"
+    comment: "{{ item.comment | default('') }}"
+  loop: "{{ firewall_rules }}"
+  when:
+    - ansible_os_family == "Debian"
+    - firewall_rules | length > 0
+
+- name: Habilitar ufw
+  community.general.ufw:
+    state: enabled
+  when: ansible_os_family == "Debian"
+
+# ── RedHat/CentOS: firewalld ──────────────────────────────────────────────────
+- name: Instalar firewalld (RedHat/CentOS)
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Habilitar y arrancar firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+  when: ansible_os_family == "RedHat"
+
+- name: Aplicar reglas de firewall (firewalld)
+  ansible.posix.firewalld:
+    port: "{{ item.port }}/{{ item.proto | default('tcp') }}"
+    permanent: true
+    immediate: true
+    state: "{{ 'enabled' if item.action | default('allow') == 'allow' else 'disabled' }}"
+  loop: "{{ firewall_rules }}"
+  when:
+    - ansible_os_family == "RedHat"
+    - firewall_rules | length > 0

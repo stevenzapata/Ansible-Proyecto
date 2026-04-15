@@ -1,0 +1,26 @@
+---
+- name: Instalar rsync
+  ansible.builtin.package:
+    name: rsync
+    state: present
+
+- name: Verificar que el host remoto está definido
+  ansible.builtin.assert:
+    that:
+      - backup_remote_host | length > 0
+    fail_msg: "La variable 'backup_remote_host' está vacía. Define el servidor de backup remoto."
+
+- name: Programar backup remoto con cron
+  ansible.builtin.cron:
+    name: "Backup remoto automático"
+    user: root
+    hour: "{{ backup_remote_schedule.hour }}"
+    minute: "{{ backup_remote_schedule.minute }}"
+    weekday: "{{ backup_remote_schedule.weekday }}"
+    job: >-
+      rsync {{ backup_remote_rsync_opts }}
+      -e "ssh -p {{ backup_remote_port }} -i {{ backup_remote_ssh_key }} -o StrictHostKeyChecking=no"
+      {{ backup_remote_sources | join(' ') }}
+      {{ backup_remote_user }}@{{ backup_remote_host }}:{{ backup_remote_path }}
+      >> /var/log/backup_remote.log 2>&1
+    state: present

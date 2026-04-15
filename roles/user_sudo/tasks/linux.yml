@@ -1,0 +1,34 @@
+---
+- name: Asegurar que el directorio sudoers.d existe
+  ansible.builtin.file:
+    path: /etc/sudoers.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Desplegar reglas sudo para usuarios
+  ansible.builtin.template:
+    src: sudoer_user.j2
+    dest: "/etc/sudoers.d/10_{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
+  loop: "{{ sudo_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: sudo_users | length > 0
+
+- name: Desplegar reglas sudo para grupos
+  ansible.builtin.template:
+    src: sudoer_group.j2
+    dest: "/etc/sudoers.d/20_group_{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
+  loop: "{{ sudo_groups }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: sudo_groups | length > 0

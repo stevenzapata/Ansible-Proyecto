@@ -1,0 +1,23 @@
+---
+- name: Crear o eliminar usuarios locales (Windows)
+  ansible.windows.win_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password | default(omit) }}"
+    description: "{{ item.comment | default('') }}"
+    password_never_expires: "{{ item.password_never_expires | default(false) }}"
+    account_disabled: "{{ item.account_disabled | default(false) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ system_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Añadir usuarios a grupos locales (Windows)
+  ansible.windows.win_group_membership:
+    name: "{{ item.1 }}"
+    members:
+      - "{{ item.0.name }}"
+    state: present
+  loop: "{{ system_users | selectattr('groups', 'defined') | list | subelements('groups') }}"
+  loop_control:
+    label: "{{ item.0.name }} → {{ item.1 }}"
+  when: item.0.state | default('present') == 'present'

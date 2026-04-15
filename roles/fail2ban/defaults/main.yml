@@ -1,0 +1,30 @@
+---
+# ── Linux (fail2ban) ─────────────────────────────────────────────────────────
+fail2ban_bantime: 3600      # segundos baneado (1h)
+fail2ban_findtime: 600      # ventana de tiempo para contar intentos
+fail2ban_maxretry: 5        # intentos antes del baneo
+
+# Jails a configurar
+fail2ban_jails:
+  - name: sshd
+    enabled: true
+    port: ssh
+    logpath: /var/log/auth.log
+    maxretry: 3
+
+# Ejemplo de jails adicionales:
+# fail2ban_jails:
+#   - name: nginx-http-auth
+#     enabled: true
+#     port: http,https
+#     logpath: /var/log/nginx/error.log
+#   - name: apache-auth
+#     enabled: true
+#     port: http,https
+#     logpath: /var/log/apache2/error.log
+#     maxretry: 5
+
+# ── Windows (IPBan) ──────────────────────────────────────────────────────────
+ipban_bantime: 3600         # segundos baneado
+ipban_maxretry: 5           # intentos antes del baneo
+ipban_install_dir_windows: 'C:\Program Files\IPBan'

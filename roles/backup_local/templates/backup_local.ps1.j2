@@ -1,0 +1,20 @@
+# Backup local generado por Ansible — rol backup_local
+$ErrorActionPreference = "Stop"
+
+$dest = "{{ backup_local_destination_windows }}\$(Get-Date -Format 'yyyy-MM-dd_HHmmss')"
+$sources = @(
+{% for src in backup_local_sources %}
+  "{{ src }}"{% if not loop.last %},{% endif %}
+
+{% endfor %}
+)
+
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+
+foreach ($src in $sources) {
+  $target = Join-Path $dest (Split-Path $src -Leaf)
+  robocopy $src $target {{ backup_local_robocopy_opts }} | Out-Null
+  Write-Output "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') OK: $src → $target"
+}
+
+Write-Output "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') Backup completado en $dest"

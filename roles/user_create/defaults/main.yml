@@ -1,0 +1,22 @@
+---
+# ── Compartido ───────────────────────────────────────────────────────────────
+# Lista de usuarios a crear o eliminar
+system_users: []
+# Ejemplo:
+# system_users:
+#   - name: deployer
+#     password: "{{ vault_user_password }}"   # hash en Linux, texto en Windows
+#     groups:
+#       - docker
+#       - sudo
+#     state: present                           # present | absent
+#     comment: "Usuario de despliegue"
+#
+#     # Solo Linux:
+#     shell: /bin/bash
+#     home: /home/deployer                    # opcional, se infiere si no se indica
+#     create_home: true
+#
+#     # Solo Windows:
+#     password_never_expires: false
+#     account_disabled: false

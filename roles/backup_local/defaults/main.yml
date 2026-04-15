@@ -1,0 +1,26 @@
+---
+# ── Compartido ───────────────────────────────────────────────────────────────
+# Directorios o archivos a incluir en el backup
+backup_local_sources: []
+# Ejemplo:
+# backup_local_sources:
+#   - /etc
+#   - /var/www
+#   - /home
+
+# Días de retención (se eliminan backups más antiguos)
+backup_local_retention_days: 7
+
+# Programación del backup automático
+backup_local_schedule:
+  hour: "2"
+  minute: "0"
+  weekday: "*"    # * = todos los días
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+backup_local_destination: /backup/local
+backup_local_rsync_opts: "--archive --compress --delete --quiet"
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+backup_local_destination_windows: 'C:\Backup\local'
+backup_local_robocopy_opts: "/E /COPYALL /R:3 /W:5 /NP /NFL /NDL"

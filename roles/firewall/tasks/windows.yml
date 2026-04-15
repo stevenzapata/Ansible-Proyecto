@@ -1,0 +1,19 @@
+---
+- name: Habilitar Windows Firewall en todos los perfiles
+  ansible.windows.win_firewall:
+    state: enabled
+    profiles: "{{ firewall_windows_profiles }}"
+
+- name: Aplicar reglas de Windows Firewall
+  ansible.windows.win_firewall_rule:
+    name: "{{ item.comment | default('Puerto ' + item.port | string + '/' + item.proto | default('tcp')) }}"
+    localport: "{{ item.port | string }}"
+    protocol: "{{ item.proto | default('tcp') }}"
+    direction: "{{ item.direction | default('in') }}"
+    action: "{{ item.action | default('allow') }}"
+    state: present
+    enabled: true
+  loop: "{{ firewall_rules }}"
+  loop_control:
+    label: "{{ item.comment | default(item.port | string) }}"
+  when: firewall_rules | length > 0

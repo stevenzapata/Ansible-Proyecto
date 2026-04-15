@@ -1,0 +1,41 @@
+---
+- name: Instalar rsync
+  ansible.builtin.package:
+    name: rsync
+    state: present
+
+- name: Crear directorio de destino
+  ansible.builtin.file:
+    path: "{{ backup_local_destination }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Desplegar script de backup
+  ansible.builtin.template:
+    src: backup_local.sh.j2
+    dest: /usr/local/bin/backup_local.sh
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Programar backup con cron
+  ansible.builtin.cron:
+    name: "Backup local automático"
+    user: root
+    hour: "{{ backup_local_schedule.hour }}"
+    minute: "{{ backup_local_schedule.minute }}"
+    weekday: "{{ backup_local_schedule.weekday }}"
+    job: "/usr/local/bin/backup_local.sh >> /var/log/backup_local.log 2>&1"
+    state: present
+
+- name: Programar limpieza de backups antiguos
+  ansible.builtin.cron:
+    name: "Limpiar backups locales antiguos"
+    user: root
+    hour: "4"
+    minute: "0"
+    job: >-
+      find {{ backup_local_destination }} -maxdepth 1 -type d -mtime +{{ backup_local_retention_days }} -exec rm -rf {} +
+    state: present

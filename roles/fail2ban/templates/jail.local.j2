@@ -1,0 +1,16 @@
+[DEFAULT]
+bantime  = {{ fail2ban_bantime }}
+findtime = {{ fail2ban_findtime }}
+maxretry = {{ fail2ban_maxretry }}
+
+{% for jail in fail2ban_jails %}
+[{{ jail.name }}]
+enabled  = {{ jail.enabled | default(true) | lower }}
+port     = {{ jail.port }}
+logpath  = {{ jail.logpath }}
+maxretry = {{ jail.maxretry | default(fail2ban_maxretry) }}
+{% if jail.bantime is defined %}
+bantime  = {{ jail.bantime }}
+{% endif %}
+
+{% endfor %}

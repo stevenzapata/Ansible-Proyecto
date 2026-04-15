@@ -1,0 +1,27 @@
+---
+# ── Compartido ───────────────────────────────────────────────────────────────
+# Directorios o archivos a enviar al destino remoto
+backup_remote_sources: []
+# Ejemplo:
+# backup_remote_sources:
+#   - /etc
+#   - /var/www
+
+# ── Linux (rsync sobre SSH) ───────────────────────────────────────────────────
+backup_remote_host: ""                    # IP o hostname del servidor de backup
+backup_remote_user: backup
+backup_remote_port: 22
+backup_remote_path: /backup/remote
+backup_remote_ssh_key: ~/.ssh/id_rsa
+backup_remote_rsync_opts: "--archive --compress --delete --quiet"
+
+backup_remote_schedule:
+  hour: "3"
+  minute: "0"
+  weekday: "*"
+
+# ── Windows (robocopy a recurso compartido UNC) ───────────────────────────────
+backup_remote_share_windows: ""           # ej: \\servidor\backup
+backup_remote_user_windows: ""
+backup_remote_password_windows: ""        # usar Ansible Vault
+backup_remote_robocopy_opts: "/E /COPYALL /R:3 /W:5 /NP /NFL /NDL"
