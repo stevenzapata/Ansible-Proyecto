@@ -1,14 +1,16 @@
 ---
-- name: Instalar Docker y desplegar contenedores
+# Ejemplo completo: instala Docker y despliega nginx + postgres
+# Puedes incluir solo los roles que necesites en cada caso.
+- name: Instalar y configurar Docker
   hosts: localhost
   become: true
 
   vars:
-    # Usuarios que pueden usar docker sin sudo
+    # ── docker_install ────────────────────────────────────────────────────────
     docker_users:
       - stevenz
 
-    # Opciones del daemon (genera /etc/docker/daemon.json)
+    # ── docker_daemon ─────────────────────────────────────────────────────────
     docker_daemon_options:
       log-driver: json-file
       log-opts:
@@ -16,19 +18,19 @@
         max-file: "5"
       storage-driver: overlay2
 
-    # Redes personalizadas
+    # ── docker_network ────────────────────────────────────────────────────────
     docker_networks:
       - name: frontend
         driver: bridge
       - name: backend
         driver: bridge
-        internal: true   # sin acceso externo
+        internal: true
 
-    # Volúmenes persistentes
+    # ── docker_volume ─────────────────────────────────────────────────────────
     docker_volumes:
       - name: datos-postgres
 
-    # Contenedores a desplegar
+    # ── docker_container ──────────────────────────────────────────────────────
     docker_containers:
       - name: web
         image: nginx:latest
@@ -37,8 +39,6 @@
           - "80:80"
         networks:
           - name: frontend
-        labels:
-          app: web
 
       - name: db
         image: postgres:16
@@ -51,6 +51,11 @@
           POSTGRES_PASSWORD: secreto123
         networks:
           - name: backend
+        memory: "512m"
 
   roles:
-    - role: docker
+    - role: docker_install    # 1. instala motor + añade usuarios al grupo docker
+    - role: docker_daemon     # 2. configura daemon.json           (opcional)
+    - role: docker_network    # 3. crea redes personalizadas        (opcional)
+    - role: docker_volume     # 4. crea volúmenes persistentes      (opcional)
+    - role: docker_container  # 5. despliega los contenedores       (opcional)

@@ -1,0 +1,23 @@
+---
+# ── Compartido ───────────────────────────────────────────────────────────────
+# Opciones del daemon → generan daemon.json
+# Cualquier opción válida de la API del daemon de Docker se puede añadir aquí.
+docker_daemon_options:
+  log-driver: json-file
+  log-opts:
+    max-size: "100m"
+    max-file: "3"
+  storage-driver: overlay2
+
+# Ejemplos de opciones adicionales:
+#   dns: ["8.8.8.8", "8.8.4.4"]
+#   insecure-registries: ["mi-registry.local:5000"]
+#   registry-mirrors: ["https://mirror.ejemplo.com"]
+#   default-ulimits:
+#     nofile:
+#       Name: nofile
+#       Hard: 64000
+#       Soft: 64000
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+docker_daemon_config_dir_windows: '%ProgramData%\Docker\config'

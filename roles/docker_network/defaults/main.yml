@@ -1,0 +1,11 @@
+---
+docker_networks: []
+# Ejemplo:
+# docker_networks:
+#   - name: frontend
+#     driver: bridge
+#   - name: backend
+#     driver: bridge
+#     internal: true    # sin acceso externo
+#   - name: vieja-red
+#     state: absent     # eliminar si existe

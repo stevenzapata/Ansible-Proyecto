@@ -1,0 +1,15 @@
+---
+# ── Linux ────────────────────────────────────────────────────────────────────
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# ── Compartido ───────────────────────────────────────────────────────────────
+# Usuarios añadidos al grupo docker en Linux (pueden usar docker sin sudo)
+docker_users: []
+# Ejemplo:
+# docker_users:
+#   - stevenz

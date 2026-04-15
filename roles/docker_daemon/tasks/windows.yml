@@ -1,0 +1,15 @@
+---
+# En Windows, Docker Desktop gestiona su configuración en:
+# %APPDATA%\Docker\settings.json
+# Las opciones de daemon se configuran desde la interfaz de Docker Desktop
+# o sobreescribiendo el fichero de configuración.
+- name: Crear directorio de configuración de Docker (Windows)
+  ansible.windows.win_file:
+    path: "{{ docker_daemon_config_dir_windows }}"
+    state: directory
+
+- name: Desplegar daemon.json (Windows)
+  ansible.windows.win_template:
+    src: daemon.json.j2
+    dest: "{{ docker_daemon_config_dir_windows }}\\daemon.json"
+  notify: Reiniciar docker Windows

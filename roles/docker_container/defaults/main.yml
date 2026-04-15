@@ -1,0 +1,49 @@
+---
+docker_containers: []
+# Cada contenedor admite:
+#   name            (requerido) nombre del contenedor
+#   image           (requerido) imagen:tag
+#   state           started | stopped | absent       (defecto: started)
+#   restart_policy  always | unless-stopped | on-failure | no  (defecto: unless-stopped)
+#   ports           lista de "host:contenedor"
+#   volumes         lista de "origen:destino[:opciones]"
+#   env             dict de variables de entorno
+#   networks        lista de {name: red}
+#   labels          dict de etiquetas
+#   pull            forzar pull de imagen (defecto: true)
+#   command         comando personalizado en el contenedor
+#   memory          límite de memoria ej: "512m"
+#   cpus            límite de CPU ej: 1.5
+#
+# Ejemplo:
+# docker_containers:
+#   - name: web
+#     image: nginx:latest
+#     restart_policy: always
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     volumes:
+#       - /srv/web:/usr/share/nginx/html:ro
+#     networks:
+#       - name: frontend
+#     labels:
+#       app: web
+#       env: produccion
+#
+#   - name: db
+#     image: postgres:16
+#     restart_policy: unless-stopped
+#     volumes:
+#       - datos-postgres:/var/lib/postgresql/data
+#     env:
+#       POSTGRES_DB: miapp
+#       POSTGRES_USER: appuser
+#       POSTGRES_PASSWORD: "{{ vault_db_password }}"
+#     networks:
+#       - name: backend
+#     memory: "512m"
+#
+#   - name: contenedor-viejo
+#     image: viejo:1.0
+#     state: absent             # eliminar si está corriendo

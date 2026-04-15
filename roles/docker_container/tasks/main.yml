@@ -1,0 +1,19 @@
+---
+# community.docker se conecta a la API de Docker → funciona igual en Linux y Windows
+- name: Gestionar contenedores Docker
+  community.docker.docker_container:
+    name: "{{ item.name }}"
+    image: "{{ item.image }}"
+    state: "{{ item.state | default('started') }}"
+    restart_policy: "{{ item.restart_policy | default('unless-stopped') }}"
+    ports: "{{ item.ports | default([]) }}"
+    volumes: "{{ item.volumes | default([]) }}"
+    env: "{{ item.env | default({}) }}"
+    networks: "{{ item.networks | default([]) }}"
+    labels: "{{ item.labels | default({}) }}"
+    pull: "{{ item.pull | default(true) }}"
+    command: "{{ item.command | default(omit) }}"
+    memory: "{{ item.memory | default(omit) }}"
+    cpus: "{{ item.cpus | default(omit) }}"
+  loop: "{{ docker_containers }}"
+  when: docker_containers | length > 0

@@ -1,0 +1,14 @@
+---
+docker_volumes: []
+# Ejemplo:
+# docker_volumes:
+#   - name: datos-postgres
+#   - name: config-app
+#   - name: logs
+#     driver: local
+#     driver_options:           # montar directorio del host como volumen nombrado
+#       type: none
+#       device: /srv/logs
+#       o: bind
+#   - name: volumen-viejo
+#     state: absent             # eliminar si existe

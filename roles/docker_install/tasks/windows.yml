@@ -1,0 +1,16 @@
+---
+- name: Asegurar que Chocolatey está instalado
+  chocolatey.chocolatey.win_chocolatey:
+    name: chocolatey
+    state: present
+
+- name: Instalar Docker Desktop (Windows)
+  chocolatey.chocolatey.win_chocolatey:
+    name: docker-desktop
+    state: present
+
+- name: Habilitar y arrancar el servicio Docker
+  ansible.windows.win_service:
+    name: com.docker.service
+    start_mode: auto
+    state: started
