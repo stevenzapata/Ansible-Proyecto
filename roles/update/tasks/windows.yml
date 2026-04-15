@@ -1,0 +1,25 @@
+---
+- name: Buscar e instalar actualizaciones de Windows
+  ansible.windows.win_updates:
+    category_names:
+      - CriticalUpdates
+      - SecurityUpdates
+      - UpdateRollups
+      - Updates
+    reboot: "{{ update_allow_reboot }}"
+    state: installed
+  register: win_update_result
+
+- name: Mostrar resumen de actualizaciones
+  ansible.builtin.debug:
+    msg: >-
+      Actualizaciones instaladas: {{ win_update_result.installed_update_count | default(0) }}.
+      Reinicio pendiente: {{ win_update_result.reboot_required | default(false) }}
+
+- name: Reiniciar si es necesario y está permitido
+  ansible.builtin.reboot:
+    msg: "Reinicio por actualización de Windows"
+    reboot_timeout: 600
+  when:
+    - update_allow_reboot | bool
+    - win_update_result.reboot_required | default(false)

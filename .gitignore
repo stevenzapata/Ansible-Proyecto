@@ -1,0 +1,37 @@
+# Logs de Ansible
+*.log
+*.retry
+
+# Archivos de credenciales y vault (nunca subir al repo)
+*vault*
+*.vault
+vault_password_file
+.vault_pass
+secrets.yml
+credentials.yml
+
+# Variables sensibles locales
+host_vars/*/secrets.yml
+group_vars/*/secrets.yml
+
+# Entornos virtuales de Python
+.venv/
+venv/
+env/
+
+# Caché de Ansible
+.ansible/
+__pycache__/
+*.pyc
+
+# Editor y OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Archivos temporales
+tmp/
+temp/

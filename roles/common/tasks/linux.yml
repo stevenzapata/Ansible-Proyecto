@@ -1,0 +1,15 @@
+---
+- name: Instalar paquetes base
+  ansible.builtin.package:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Configurar zona horaria
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Asegurar que el servicio NTP esté activo
+  ansible.builtin.service:
+    name: "{{ 'systemd-timesyncd' if ansible_distribution == 'Ubuntu' else 'chronyd' }}"
+    state: started
+    enabled: true

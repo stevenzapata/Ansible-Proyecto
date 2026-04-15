@@ -1,0 +1,12 @@
+---
+- name: Reiniciar sshd
+  ansible.builtin.service:
+    name: "{{ ssh_service_name }}"
+    state: restarted
+  when: ansible_os_family != 'Windows'
+
+- name: Reiniciar sshd Windows
+  ansible.windows.win_service:
+    name: sshd
+    state: restarted
+  when: ansible_os_family == 'Windows'

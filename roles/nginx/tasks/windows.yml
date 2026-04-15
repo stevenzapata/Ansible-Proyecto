@@ -1,0 +1,52 @@
+---
+- name: Instalar Nginx vía Chocolatey (Windows)
+  chocolatey.chocolatey.win_chocolatey:
+    name: nginx
+    state: present
+
+- name: Crear directorio de configuración de sitios (Windows)
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ nginx_conf_dir_windows }}\\sites-available"
+    - "{{ nginx_conf_dir_windows }}\\sites-enabled"
+
+- name: Desplegar configuración principal de Nginx (Windows)
+  ansible.windows.win_template:
+    src: nginx.conf.j2
+    dest: "{{ nginx_conf_dir_windows }}\\nginx.conf"
+  notify: Recargar nginx Windows
+
+- name: Desplegar vhost por defecto (Windows)
+  ansible.windows.win_template:
+    src: vhost_default.j2
+    dest: "{{ nginx_conf_dir_windows }}\\sites-available\\{{ nginx_server_name }}.conf"
+  notify: Recargar nginx Windows
+
+- name: Crear directorio webroot (Windows)
+  ansible.windows.win_file:
+    path: "{{ nginx_webroot_windows }}"
+    state: directory
+
+- name: Desplegar página index de prueba (Windows)
+  ansible.windows.win_copy:
+    content: |
+      <!DOCTYPE html>
+      <html>
+      <head><title>{{ nginx_server_name }} - Ansible</title></head>
+      <body><h1>Servidor Nginx desplegado con Ansible</h1></body>
+      </html>
+    dest: "{{ nginx_webroot_windows }}\\index.html"
+  when: nginx_deploy_test_page | bool
+
+- name: Instalar Nginx como servicio Windows (vía NSSM)
+  chocolatey.chocolatey.win_chocolatey:
+    name: nssm
+    state: present
+
+- name: Registrar y arrancar Nginx como servicio
+  ansible.windows.win_service:
+    name: nginx
+    start_mode: auto
+    state: started

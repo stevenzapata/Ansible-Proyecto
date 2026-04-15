@@ -1,0 +1,15 @@
+---
+# Rutas absolutas a crear. Usa $USER como marcador del nombre de usuario.
+# $USER puede ir en cualquier posición de la ruta.
+#
+# Ejemplos:
+#   /desktop/$USER/downloads       → /desktop/stevenz/downloads
+#   /serv/data/$USER/local         → /serv/data/stevenz/local
+#   /backup/$USER                  → /backup/stevenz
+#   /opt/apps/conf/$USER/settings  → /opt/apps/conf/stevenz/settings
+user_dirs_structure:
+  - /desktop/$USER/downloads
+  - /serv/data/$USER/local
+
+# Permisos de los directorios creados
+user_dirs_mode: "0755"

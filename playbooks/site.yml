@@ -1,0 +1,21 @@
+---
+# Playbook maestro — aplica todos los roles según el grupo del host
+
+- name: Configuración base de todos los servidores
+  hosts: all
+  become: true
+  roles:
+    - role: common
+    - role: update
+
+- name: Configurar SSH en todos los servidores
+  hosts: all
+  become: true
+  roles:
+    - role: ssh
+
+- name: Desplegar Nginx en servidores web
+  hosts: webservers
+  become: true
+  roles:
+    - role: nginx

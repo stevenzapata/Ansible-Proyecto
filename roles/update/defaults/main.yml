@@ -1,0 +1,4 @@
+---
+update_upgrade_type: dist   # safe | full | dist
+update_autoremove: true
+update_allow_reboot: false  # cambiar a true para reinicio automático

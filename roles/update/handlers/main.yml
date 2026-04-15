@@ -1,0 +1,6 @@
+---
+- name: Reiniciar si es necesario
+  ansible.builtin.reboot:
+    msg: "Reinicio por actualización del sistema"
+    reboot_timeout: 300
+  when: update_allow_reboot | bool

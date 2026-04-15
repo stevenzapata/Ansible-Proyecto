@@ -1,0 +1,36 @@
+---
+- name: Actualizar caché de paquetes (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Actualizar caché de paquetes (RedHat/CentOS)
+  ansible.builtin.dnf:
+    update_cache: true
+  when: ansible_os_family == "RedHat"
+
+- name: Actualizar todos los paquetes (Debian/Ubuntu)
+  ansible.builtin.apt:
+    upgrade: "{{ update_upgrade_type }}"
+    autoremove: "{{ update_autoremove }}"
+  when: ansible_os_family == "Debian"
+  notify: Reiniciar si es necesario
+
+- name: Actualizar todos los paquetes (RedHat/CentOS)
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+  when: ansible_os_family == "RedHat"
+  notify: Reiniciar si es necesario
+
+- name: Verificar si se requiere reinicio (Debian/Ubuntu)
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: reboot_required_file
+  when: ansible_os_family == "Debian"
+
+- name: Mostrar estado del reinicio
+  ansible.builtin.debug:
+    msg: "Reinicio requerido: {{ reboot_required_file.stat.exists | default(false) }}"
+  when: ansible_os_family == "Debian"

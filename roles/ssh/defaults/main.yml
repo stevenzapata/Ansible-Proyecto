@@ -1,0 +1,25 @@
+---
+# ── Linux ────────────────────────────────────────────────────────────────────
+ssh_package: openssh-server
+ssh_service_name: ssh   # En RedHat es 'sshd'
+
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_pubkey_authentication: "yes"
+ssh_max_auth_tries: 3
+ssh_client_alive_interval: 300
+ssh_client_alive_count_max: 2
+ssh_allow_tcp_forwarding: "no"
+ssh_x11_forwarding: "no"
+
+# Lista de usuarios y sus claves públicas (compartido Linux/Windows)
+# Ejemplo:
+# ssh_users:
+#   - name: deployer
+#     public_key: "ssh-rsa AAAAB3Nza..."
+ssh_users: []
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+# Ruta de configuración de sshd en Windows
+ssh_config_dir_windows: 'C:\ProgramData\ssh'

@@ -1,0 +1,24 @@
+---
+# ── Compartido ───────────────────────────────────────────────────────────────
+nginx_server_name: default
+nginx_server_port: 80
+nginx_deploy_test_page: true
+
+# SSL (opcional)
+nginx_ssl_enabled: false
+nginx_ssl_port: 443
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+nginx_user: www-data
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+nginx_webroot: /var/www/html
+nginx_ssl_cert: /etc/ssl/certs/nginx.crt
+nginx_ssl_key: /etc/ssl/private/nginx.key
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+# Chocolatey instala nginx en C:\tools\nginx por defecto
+nginx_conf_dir_windows: 'C:\tools\nginx\conf'
+nginx_webroot_windows: 'C:\tools\nginx\html'
+nginx_ssl_cert_windows: 'C:\tools\nginx\conf\ssl\nginx.crt'
+nginx_ssl_key_windows: 'C:\tools\nginx\conf\ssl\nginx.key'

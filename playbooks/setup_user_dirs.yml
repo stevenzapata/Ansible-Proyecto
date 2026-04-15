@@ -1,0 +1,13 @@
+---
+- name: Descubrir usuarios reales y crear estructura de directorios
+  hosts: localhost
+  become: true
+
+  vars:
+    user_dirs_structure:
+      - /desktop/$USER/downloads
+      - /serv/data/$USER/local
+
+  roles:
+    - role: user_discovery
+    - role: user_dirs

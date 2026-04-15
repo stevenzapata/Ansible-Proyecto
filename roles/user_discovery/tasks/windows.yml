@@ -1,0 +1,33 @@
+---
+# Get-LocalUser devuelve todas las cuentas locales; filtramos las habilitadas
+# y las del sistema. El resultado se serializa a JSON para que Ansible lo parsee.
+- name: Obtener cuentas locales habilitadas
+  ansible.windows.win_shell: |
+    $users = @(
+      Get-LocalUser |
+      Where-Object { $_.Enabled -eq $true } |
+      ForEach-Object {
+        @{
+          name = "$($_.Name)"
+          home = "C:\Users\$($_.Name)"
+        }
+      }
+    )
+    ConvertTo-Json -InputObject $users -Compress
+  register: _win_users_raw
+  changed_when: false
+
+- name: Filtrar y registrar usuarios como fact
+  ansible.builtin.set_fact:
+    discovered_users: >-
+      {{
+        (_win_users_raw.stdout | from_json)
+        | rejectattr('name', 'in', user_exclude_names_windows)
+        | list
+      }}
+
+- name: Mostrar usuarios descubiertos
+  ansible.builtin.debug:
+    msg: >-
+      {{ discovered_users | length }} usuario(s) encontrado(s):
+      {{ discovered_users | map(attribute='name') | list | join(', ') }}

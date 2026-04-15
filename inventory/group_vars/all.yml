@@ -1,0 +1,19 @@
+---
+# Variables globales para todos los hosts
+
+# Usuario de administración
+admin_user: ansible
+
+# Zona horaria del sistema
+timezone: Europe/Madrid
+
+# Paquetes básicos a instalar en todos los hosts
+common_packages:
+  - curl
+  - wget
+  - vim
+  - git
+  - htop
+  - net-tools
+  - unzip
+  - ca-certificates

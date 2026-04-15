@@ -1,0 +1,3 @@
+---
+- name: Detectar SO e incluir tareas correspondientes
+  ansible.builtin.include_tasks: "{{ 'windows' if ansible_os_family == 'Windows' else 'linux' }}.yml"

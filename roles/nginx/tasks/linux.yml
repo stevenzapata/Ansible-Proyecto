@@ -1,0 +1,70 @@
+---
+- name: Instalar Nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+
+- name: Crear directorios sites-available y sites-enabled
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/nginx/sites-available
+    - /etc/nginx/sites-enabled
+
+- name: Desplegar configuración principal de Nginx
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/nginx -t -c %s
+  notify: Recargar nginx
+
+- name: Desplegar vhost por defecto
+  ansible.builtin.template:
+    src: vhost_default.j2
+    dest: "/etc/nginx/sites-available/{{ nginx_server_name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Recargar nginx
+
+- name: Habilitar el vhost
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ nginx_server_name }}"
+    dest: "/etc/nginx/sites-enabled/{{ nginx_server_name }}"
+    state: link
+  notify: Recargar nginx
+
+- name: Crear directorio webroot
+  ansible.builtin.file:
+    path: "{{ nginx_webroot }}"
+    state: directory
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: "0755"
+
+- name: Desplegar página index de prueba
+  ansible.builtin.copy:
+    content: |
+      <!DOCTYPE html>
+      <html>
+      <head><title>{{ nginx_server_name }} - Ansible</title></head>
+      <body><h1>Servidor Nginx desplegado con Ansible</h1></body>
+      </html>
+    dest: "{{ nginx_webroot }}/index.html"
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: "0644"
+  when: nginx_deploy_test_page | bool
+
+- name: Habilitar y arrancar Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

@@ -1,0 +1,30 @@
+---
+- name: Leer base de datos de usuarios del sistema
+  ansible.builtin.getent:
+    database: passwd
+
+# getent_passwd: { username: [password, uid, gid, gecos, home, shell] }
+- name: Filtrar y registrar usuarios reales como fact
+  ansible.builtin.set_fact:
+    discovered_users: >-
+      {%- set users = [] -%}
+      {%- for u, d in getent_passwd.items()
+          if d[1]|int >= user_min_uid
+          and d[1]|int not in user_exclude_uids
+          and d[5] not in user_exclude_shells -%}
+        {%- set _ = users.append({
+          'name':    u,
+          'uid':     d[1] | int,
+          'gid':     d[2] | int,
+          'comment': d[3],
+          'home':    d[4],
+          'shell':   d[5]
+        }) -%}
+      {%- endfor -%}
+      {{ users | sort(attribute='uid') }}
+
+- name: Mostrar usuarios descubiertos
+  ansible.builtin.debug:
+    msg: >-
+      {{ discovered_users | length }} usuario(s) encontrado(s):
+      {{ discovered_users | map(attribute='name') | list | join(', ') }}

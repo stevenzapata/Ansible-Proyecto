@@ -1,0 +1,9 @@
+---
+# Puedes sobreescribir variables de inventory/group_vars/all.yml aquí
+# o agregar variables extra de ámbito global
+
+ntp_servers:
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org
+
+syslog_server: ""

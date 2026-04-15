@@ -1,0 +1,33 @@
+---
+# ── Compartido ───────────────────────────────────────────────────────────────
+apache_server_name: mi-sitio.local
+apache_server_admin: admin@mi-sitio.local
+apache_server_port: 80
+apache_disable_default_site: true
+apache_deploy_test_page: true
+
+apache_modules:
+  - rewrite
+  - headers
+  - ssl
+
+# SSL (opcional)
+apache_ssl_enabled: false
+apache_ssl_port: 443
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+apache_package: apache2            # En RedHat: httpd
+apache_service_name: apache2       # En RedHat: httpd
+apache_user: www-data              # En RedHat: apache
+apache_vhost_dir: /etc/apache2/sites-available
+apache_webroot: /var/www/html
+apache_ssl_cert: /etc/ssl/certs/apache.crt
+apache_ssl_key: /etc/ssl/private/apache.key
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+# Chocolatey instala apache-httpd en C:\Apache24 por defecto
+apache_service_name_windows: Apache2.4
+apache_vhost_dir_windows: 'C:\Apache24\conf\extra'
+apache_webroot_windows: 'C:\Apache24\htdocs'
+apache_ssl_cert_windows: 'C:\Apache24\conf\ssl\apache.crt'
+apache_ssl_key_windows: 'C:\Apache24\conf\ssl\apache.key'

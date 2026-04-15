@@ -1,0 +1,29 @@
+---
+# ── Linux ────────────────────────────────────────────────────────────────────
+timezone: Europe/Madrid
+
+common_packages:
+  - curl
+  - wget
+  - vim
+  - git
+  - htop
+  - net-tools
+  - unzip
+  - ca-certificates
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+# Zona horaria en formato Windows (Get-TimeZone | Select-Object Id)
+timezone_windows: "Romance Standard Time"  # Equivalente a Europe/Madrid
+
+common_packages_windows:
+  - git
+  - vim
+  - curl
+  - 7zip
+  - notepadplusplus
+
+# Servidores NTP para Windows Time
+common_ntp_servers_windows:
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org

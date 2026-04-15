@@ -1,0 +1,12 @@
+---
+- name: Verificar que el rol user_discovery se ejecutó antes
+  ansible.builtin.assert:
+    that:
+      - discovered_users is defined
+      - discovered_users | length > 0
+    fail_msg: >-
+      El fact 'discovered_users' no está definido o está vacío.
+      Ejecuta el rol 'user_discovery' antes que 'user_dirs'.
+
+- name: Detectar SO e incluir tareas correspondientes
+  ansible.builtin.include_tasks: "{{ 'windows' if ansible_os_family == 'Windows' else 'linux' }}.yml"

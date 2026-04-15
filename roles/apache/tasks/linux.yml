@@ -1,0 +1,66 @@
+---
+- name: Instalar Apache
+  ansible.builtin.package:
+    name: "{{ apache_package }}"
+    state: present
+
+- name: Habilitar módulos de Apache (Debian/Ubuntu)
+  community.general.apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ apache_modules }}"
+  when: ansible_os_family == "Debian"
+  notify: Reiniciar apache
+
+- name: Desplegar configuración de VirtualHost
+  ansible.builtin.template:
+    src: vhost.conf.j2
+    dest: "{{ apache_vhost_dir }}/{{ apache_server_name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reiniciar apache
+
+- name: Habilitar VirtualHost (Debian/Ubuntu)
+  ansible.builtin.command:
+    cmd: "a2ensite {{ apache_server_name }}.conf"
+  when: ansible_os_family == "Debian"
+  notify: Reiniciar apache
+  changed_when: true
+
+- name: Deshabilitar sitio default de Apache (Debian/Ubuntu)
+  ansible.builtin.command:
+    cmd: a2dissite 000-default.conf
+  when:
+    - ansible_os_family == "Debian"
+    - apache_disable_default_site | bool
+  notify: Reiniciar apache
+  changed_when: true
+
+- name: Crear directorio webroot
+  ansible.builtin.file:
+    path: "{{ apache_webroot }}"
+    state: directory
+    owner: "{{ apache_user }}"
+    group: "{{ apache_user }}"
+    mode: "0755"
+
+- name: Desplegar página index de prueba
+  ansible.builtin.copy:
+    content: |
+      <!DOCTYPE html>
+      <html>
+      <head><title>{{ apache_server_name }} - Ansible</title></head>
+      <body><h1>Servidor Apache desplegado con Ansible</h1></body>
+      </html>
+    dest: "{{ apache_webroot }}/index.html"
+    owner: "{{ apache_user }}"
+    group: "{{ apache_user }}"
+    mode: "0644"
+  when: apache_deploy_test_page | bool
+
+- name: Habilitar y arrancar Apache
+  ansible.builtin.service:
+    name: "{{ apache_service_name }}"
+    state: started
+    enabled: true

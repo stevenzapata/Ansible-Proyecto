@@ -1,0 +1,39 @@
+---
+- name: Instalar servidor OpenSSH
+  ansible.builtin.package:
+    name: "{{ ssh_package }}"
+    state: present
+
+- name: Desplegar configuración de sshd
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Reiniciar sshd
+
+- name: Asegurar que el directorio .ssh exista para cada usuario
+  ansible.builtin.file:
+    path: "/home/{{ item.name }}/.ssh"
+    state: directory
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: "0700"
+  loop: "{{ ssh_users }}"
+  when: ssh_users | length > 0
+
+- name: Copiar claves públicas autorizadas
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    state: present
+    key: "{{ item.public_key }}"
+  loop: "{{ ssh_users }}"
+  when: ssh_users | length > 0
+
+- name: Habilitar y arrancar el servicio sshd
+  ansible.builtin.service:
+    name: "{{ ssh_service_name }}"
+    state: started
+    enabled: true

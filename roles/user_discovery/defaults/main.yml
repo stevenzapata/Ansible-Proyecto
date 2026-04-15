@@ -1,0 +1,23 @@
+---
+# ── Linux ────────────────────────────────────────────────────────────────────
+# UID mínimo para considerar un usuario "real" (en Linux suele ser 1000)
+user_min_uid: 1000
+
+# UIDs a excluir explícitamente aunque superen el mínimo (nobody = 65534)
+user_exclude_uids:
+  - 65534
+
+# Shells que indican cuentas sin acceso interactivo
+user_exclude_shells:
+  - /usr/sbin/nologin
+  - /sbin/nologin
+  - /bin/false
+  - /bin/sync
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+# Cuentas del sistema a excluir (siempre presentes en Windows)
+user_exclude_names_windows:
+  - Administrator
+  - DefaultAccount
+  - Guest
+  - WDAGUtilityAccount

@@ -1,0 +1,37 @@
+# Gestionado por Ansible — no editar manualmente
+
+<VirtualHost *:{{ apache_server_port }}>
+    ServerName  {{ apache_server_name }}
+    ServerAdmin {{ apache_server_admin }}
+    DocumentRoot {{ apache_webroot }}
+
+    <Directory {{ apache_webroot }}>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog  ${APACHE_LOG_DIR}/{{ apache_server_name }}_error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ apache_server_name }}_access.log combined
+</VirtualHost>
+
+{% if apache_ssl_enabled %}
+<VirtualHost *:{{ apache_ssl_port }}>
+    ServerName  {{ apache_server_name }}
+    ServerAdmin {{ apache_server_admin }}
+    DocumentRoot {{ apache_webroot }}
+
+    SSLEngine on
+    SSLCertificateFile    {{ apache_ssl_cert }}
+    SSLCertificateKeyFile {{ apache_ssl_key }}
+
+    <Directory {{ apache_webroot }}>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog  ${APACHE_LOG_DIR}/{{ apache_server_name }}_ssl_error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ apache_server_name }}_ssl_access.log combined
+</VirtualHost>
+{% endif %}

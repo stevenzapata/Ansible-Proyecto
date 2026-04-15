@@ -1,0 +1,27 @@
+# Gestionado por Ansible — no editar manualmente
+
+Port {{ ssh_port }}
+AddressFamily any
+ListenAddress 0.0.0.0
+
+# Autenticación
+PermitRootLogin {{ ssh_permit_root_login }}
+PasswordAuthentication {{ ssh_password_authentication }}
+PubkeyAuthentication {{ ssh_pubkey_authentication }}
+AuthorizedKeysFile .ssh/authorized_keys
+
+MaxAuthTries {{ ssh_max_auth_tries }}
+
+# Sesiones
+ClientAliveInterval {{ ssh_client_alive_interval }}
+ClientAliveCountMax {{ ssh_client_alive_count_max }}
+
+# Reenvíos
+AllowTcpForwarding {{ ssh_allow_tcp_forwarding }}
+X11Forwarding {{ ssh_x11_forwarding }}
+
+# Subsistemas
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Protocolo y cifrado
+Protocol 2
