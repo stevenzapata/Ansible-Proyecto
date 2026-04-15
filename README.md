@@ -35,6 +35,8 @@ ansible-galaxy collection install \
   ansible.posix \
   community.general \
   community.docker \
+  community.postgresql \
+  community.mysql \
   community.windows \
   ansible.windows \
   chocolatey.chocolatey
@@ -72,7 +74,15 @@ Ansible-Proyecto/
     ├── docker_daemon/   [Linux | Windows]   Configura daemon.json
     ├── docker_network/  [Cross-platform]    Gestiona redes Docker
     ├── docker_volume/   [Cross-platform]    Gestiona volúmenes Docker
-    └── docker_container/[Cross-platform]    Despliega contenedores Docker
+    ├── docker_container/[Cross-platform]    Despliega contenedores Docker
+    ├── firewall/        [Linux | Windows]   Reglas de firewall (ufw/firewalld/WinFirewall)
+    ├── fail2ban/        [Linux | Windows]   Protección fuerza bruta (fail2ban/IPBan)
+    ├── postgresql/      [Linux | Windows]   Instalación y gestión de PostgreSQL
+    ├── mariadb/         [Linux | Windows]   Instalación y gestión de MariaDB
+    ├── backup_local/    [Linux | Windows]   Backup local (rsync/robocopy + scheduler)
+    ├── backup_remote/   [Linux | Windows]   Backup remoto (rsync SSH / UNC share)
+    ├── user_create/     [Linux | Windows]   Crear y gestionar usuarios del sistema
+    └── user_sudo/       [Linux | Windows]   Permisos sudo/Administradores
 ```
 
 Cada rol con archivos `linux.yml`/`windows.yml` sigue esta estructura interna:
@@ -320,6 +330,214 @@ docker_containers:
 | `state` | `started` | `started` / `stopped` / `absent` |
 | `restart_policy` | `unless-stopped` | `always` / `unless-stopped` / `on-failure` / `no` |
 | `pull` | `true` | Forzar pull de imagen al arrancar |
+
+---
+
+### `firewall` `Linux | Windows`
+Gestiona reglas de firewall. Usa `ufw` en Debian/Ubuntu, `firewalld` en RedHat/CentOS y Windows Firewall en Windows.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `firewall_rules` | `[]` | Lista de reglas a aplicar |
+| `firewall_default_input` | `deny` | Política por defecto de entrada (Linux) |
+| `firewall_windows_profiles` | Domain, Private, Public | Perfiles a habilitar (Windows) |
+
+```yaml
+firewall_rules:
+  - port: 22
+    proto: tcp
+    action: allow
+    comment: SSH
+  - port: 80
+    proto: tcp
+    action: allow
+    comment: HTTP
+```
+
+---
+
+### `fail2ban` `Linux | Windows`
+Protección contra ataques de fuerza bruta. Usa `fail2ban` en Linux e `IPBan` en Windows.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `fail2ban_bantime` | `3600` | Segundos de baneo |
+| `fail2ban_maxretry` | `5` | Intentos antes del baneo |
+| `fail2ban_jails` | `[sshd]` | Jails a habilitar (Linux) |
+| `ipban_maxretry` | `5` | Intentos antes del baneo (Windows) |
+
+```yaml
+fail2ban_jails:
+  - name: sshd
+    enabled: true
+    port: ssh
+    logpath: /var/log/auth.log
+    maxretry: 3
+  - name: nginx-http-auth
+    enabled: true
+    port: http,https
+    logpath: /var/log/nginx/error.log
+```
+
+---
+
+### `postgresql` `Linux | Windows`
+Instala PostgreSQL y gestiona bases de datos y usuarios. Requiere la colección `community.postgresql`.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `postgresql_version` | `16` | Versión a instalar |
+| `postgresql_port` | `5432` | Puerto de escucha |
+| `postgresql_databases` | `[]` | Bases de datos a crear |
+| `postgresql_users` | `[]` | Usuarios a crear |
+
+```yaml
+postgresql_databases:
+  - name: miapp
+    owner: appuser
+
+postgresql_users:
+  - name: appuser
+    password: "{{ vault_pg_password }}"
+    role_attr_flags: NOSUPERUSER,NOCREATEDB
+    db: miapp
+```
+
+---
+
+### `mariadb` `Linux | Windows`
+Instala MariaDB, aplica securización inicial y gestiona bases de datos y usuarios. Requiere `community.mysql`.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `mariadb_root_password` | `""` | Contraseña de root (usar Vault) |
+| `mariadb_port` | `3306` | Puerto de escucha |
+| `mariadb_databases` | `[]` | Bases de datos a crear |
+| `mariadb_users` | `[]` | Usuarios a crear |
+
+```yaml
+mariadb_root_password: "{{ vault_mysql_root }}"
+
+mariadb_databases:
+  - name: miapp
+    encoding: utf8mb4
+
+mariadb_users:
+  - name: appuser
+    password: "{{ vault_db_password }}"
+    host: localhost
+    priv: "miapp.*:ALL"
+```
+
+---
+
+### `backup_local` `Linux | Windows`
+Crea copias de seguridad locales con fecha. Usa `rsync` + `cron` en Linux y `robocopy` + Task Scheduler en Windows.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `backup_local_sources` | `[]` | Rutas a incluir en el backup |
+| `backup_local_destination` | `/backup/local` | Destino (Linux) |
+| `backup_local_destination_windows` | `C:\Backup\local` | Destino (Windows) |
+| `backup_local_retention_days` | `7` | Días de retención |
+| `backup_local_schedule` | `{hour: 2, minute: 0}` | Programación |
+
+```yaml
+backup_local_sources:
+  - /etc
+  - /var/www
+  - /home
+
+backup_local_retention_days: 14
+backup_local_schedule:
+  hour: "3"
+  minute: "30"
+  weekday: "*"
+```
+
+---
+
+### `backup_remote` `Linux | Windows`
+Envía copias de seguridad a un servidor remoto. Usa `rsync` sobre SSH en Linux y `robocopy` a recurso UNC en Windows.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `backup_remote_sources` | `[]` | Rutas a enviar |
+| `backup_remote_host` | `""` | Servidor destino (Linux) |
+| `backup_remote_path` | `/backup/remote` | Ruta remota (Linux) |
+| `backup_remote_share_windows` | `""` | Recurso UNC destino (Windows) |
+
+```yaml
+# Linux
+backup_remote_sources:
+  - /etc
+  - /var/www
+backup_remote_host: 192.168.1.50
+backup_remote_user: backup
+backup_remote_path: /backup/servers
+
+# Windows
+backup_remote_share_windows: "\\\\nas\\backup"
+backup_remote_user_windows: backup_user
+backup_remote_password_windows: "{{ vault_backup_pass }}"
+```
+
+---
+
+### `user_create` `Linux | Windows`
+Crea, modifica o elimina usuarios del sistema.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `system_users` | `[]` | Lista de usuarios a gestionar |
+
+```yaml
+system_users:
+  - name: deployer
+    password: "{{ vault_user_hash }}"
+    groups: [docker, sudo]
+    shell: /bin/bash
+    comment: "Usuario de despliegue"
+    state: present
+
+  - name: usuario_viejo
+    state: absent
+```
+
+---
+
+### `user_sudo` `Linux | Windows`
+Gestiona permisos elevados. Crea entradas en `sudoers.d` en Linux y gestiona el grupo Administradores en Windows.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `sudo_users` | `[]` | Usuarios con regla sudo (Linux) |
+| `sudo_groups` | `[]` | Grupos con regla sudo (Linux) |
+| `sudo_windows_admin_users` | `[]` | Usuarios a añadir a Administradores (Windows) |
+| `sudo_windows_group_members` | `[]` | Usuarios a añadir a grupos específicos (Windows) |
+
+```yaml
+# Linux
+sudo_users:
+  - name: deployer
+    nopasswd: true
+    commands: ALL
+  - name: monitor
+    nopasswd: false
+    commands: /usr/bin/systemctl status *, /usr/bin/journalctl
+
+sudo_groups:
+  - name: developers
+    nopasswd: false
+    commands: /usr/bin/docker, /usr/bin/systemctl
+
+# Windows
+sudo_windows_admin_users:
+  - deployer
+sudo_windows_group_members:
+  - group: "Remote Desktop Users"
+    members: [deployer, monitor]
+```
 
 ---
 
