@@ -14,6 +14,13 @@ Colección de roles Ansible **reutilizables y cross-platform** (Linux + Windows)
 - [Uso rápido](#uso-rápido)
 - [Convenciones](#convenciones)
 
+### Leyenda de plataformas
+
+| Distintivo | Significado |
+|---|---|
+| `Linux \| Windows` | El rol tiene lógica separada por SO (`linux.yml` + `windows.yml`) |
+| `Cross-platform` | El rol usa módulos que funcionan igual en ambos SO, sin split |
+
 ---
 
 ## Requisitos
@@ -47,7 +54,6 @@ Ansible-Proyecto/
 ├── group_vars/
 │   └── all.yml                     # Variables globales extra
 ├── playbooks/
-│   ├── site.yml                    # Playbook maestro
 │   ├── update_system.yml
 │   ├── setup_ssh.yml
 │   ├── setup_nginx.yml
@@ -55,18 +61,18 @@ Ansible-Proyecto/
 │   ├── setup_user_dirs.yml
 │   └── setup_docker.yml
 └── roles/
-    ├── common/                     # Paquetes base y zona horaria
-    ├── update/                     # Actualización del sistema
-    ├── ssh/                        # Instalación y hardening de SSH
-    ├── nginx/                      # Servidor web Nginx
-    ├── apache/                     # Servidor web Apache
-    ├── user_discovery/             # Detecta usuarios reales del sistema
-    ├── user_dirs/                  # Crea estructura de carpetas por usuario
-    ├── docker_install/             # Instala Docker Engine / Docker Desktop
-    ├── docker_daemon/              # Configura daemon.json
-    ├── docker_network/             # Gestiona redes Docker
-    ├── docker_volume/              # Gestiona volúmenes Docker
-    └── docker_container/           # Despliega contenedores Docker
+    ├── common/          [Linux | Windows]   Paquetes base y zona horaria
+    ├── update/          [Linux | Windows]   Actualización del sistema
+    ├── ssh/             [Linux | Windows]   Instalación y hardening de SSH
+    ├── nginx/           [Linux | Windows]   Servidor web Nginx
+    ├── apache/          [Linux | Windows]   Servidor web Apache
+    ├── user_discovery/  [Linux | Windows]   Detecta usuarios reales del sistema
+    ├── user_dirs/       [Linux | Windows]   Crea estructura de carpetas por usuario
+    ├── docker_install/  [Linux | Windows]   Instala Docker Engine / Docker Desktop
+    ├── docker_daemon/   [Linux | Windows]   Configura daemon.json
+    ├── docker_network/  [Cross-platform]    Gestiona redes Docker
+    ├── docker_volume/   [Cross-platform]    Gestiona volúmenes Docker
+    └── docker_container/[Cross-platform]    Despliega contenedores Docker
 ```
 
 Cada rol con archivos `linux.yml`/`windows.yml` sigue esta estructura interna:
@@ -102,7 +108,7 @@ Los roles `docker_network`, `docker_volume` y `docker_container` no necesitan sp
 
 ## Roles disponibles
 
-### `common`
+### `common` `Linux | Windows`
 Instala paquetes base y configura zona horaria y NTP.
 
 | Variable | Defecto | Descripción |
@@ -114,7 +120,7 @@ Instala paquetes base y configura zona horaria y NTP.
 
 ---
 
-### `update`
+### `update` `Linux | Windows`
 Actualiza todos los paquetes del sistema.
 
 | Variable | Defecto | Descripción |
@@ -125,7 +131,7 @@ Actualiza todos los paquetes del sistema.
 
 ---
 
-### `ssh`
+### `ssh` `Linux | Windows`
 Instala OpenSSH Server y aplica hardening de configuración.
 
 | Variable | Defecto | Descripción |
@@ -143,7 +149,7 @@ ssh_users:
 
 ---
 
-### `nginx`
+### `nginx` `Linux | Windows`
 Instala y configura Nginx con soporte de vhosts.
 
 | Variable | Defecto | Descripción |
@@ -156,7 +162,7 @@ Instala y configura Nginx con soporte de vhosts.
 
 ---
 
-### `apache`
+### `apache` `Linux | Windows`
 Instala y configura Apache con soporte de VirtualHosts.
 
 | Variable | Defecto | Descripción |
@@ -169,7 +175,7 @@ Instala y configura Apache con soporte de VirtualHosts.
 
 ---
 
-### `user_discovery`
+### `user_discovery` `Linux | Windows`
 Lee los usuarios reales del sistema y expone el fact `discovered_users` para ser usado por otros roles.
 
 | Variable | Defecto | Descripción |
@@ -191,7 +197,7 @@ discovered_users:
 
 ---
 
-### `user_dirs`
+### `user_dirs` `Linux | Windows`
 Crea una estructura de carpetas para cada usuario usando `$USER` como marcador posicionable en cualquier parte de la ruta.
 
 | Variable | Defecto | Descripción |
@@ -211,7 +217,7 @@ user_dirs_structure:
 
 ---
 
-### `docker_install`
+### `docker_install` `Linux | Windows`
 Instala Docker Engine (Linux) o Docker Desktop (Windows), arranca el servicio y añade usuarios al grupo docker.
 
 | Variable | Defecto | Descripción |
@@ -221,7 +227,7 @@ Instala Docker Engine (Linux) o Docker Desktop (Windows), arranca el servicio y 
 
 ---
 
-### `docker_daemon`
+### `docker_daemon` `Linux | Windows`
 Configura el daemon de Docker mediante `daemon.json`.
 
 | Variable | Defecto | Descripción |
@@ -241,7 +247,7 @@ docker_daemon_options:
 
 ---
 
-### `docker_network`
+### `docker_network` `Cross-platform`
 Crea y gestiona redes Docker personalizadas.
 
 ```yaml
@@ -257,7 +263,7 @@ docker_networks:
 
 ---
 
-### `docker_volume`
+### `docker_volume` `Cross-platform`
 Crea y gestiona volúmenes Docker persistentes.
 
 ```yaml
@@ -273,7 +279,7 @@ docker_volumes:
 
 ---
 
-### `docker_container`
+### `docker_container` `Cross-platform`
 Despliega y gestiona contenedores Docker.
 
 ```yaml
@@ -321,7 +327,6 @@ docker_containers:
 
 | Playbook | Roles que usa |
 |---|---|
-| `site.yml` | common, update, ssh, nginx |
 | `update_system.yml` | update |
 | `setup_ssh.yml` | ssh |
 | `setup_nginx.yml` | nginx |
