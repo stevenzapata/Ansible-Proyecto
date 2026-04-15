@@ -1,61 +1,11 @@
 ---
-# Ejemplo completo: instala Docker y despliega nginx + postgres
-# Puedes incluir solo los roles que necesites en cada caso.
-- name: Instalar y configurar Docker
-  hosts: localhost
+- name: Instalar Docker y desplegar contenedores
+  hosts: "{{ target_hosts | default('all') }}"
   become: true
 
-  vars:
-    # ── docker_install ────────────────────────────────────────────────────────
-    docker_users:
-      - stevenz
-
-    # ── docker_daemon ─────────────────────────────────────────────────────────
-    docker_daemon_options:
-      log-driver: json-file
-      log-opts:
-        max-size: "50m"
-        max-file: "5"
-      storage-driver: overlay2
-
-    # ── docker_network ────────────────────────────────────────────────────────
-    docker_networks:
-      - name: frontend
-        driver: bridge
-      - name: backend
-        driver: bridge
-        internal: true
-
-    # ── docker_volume ─────────────────────────────────────────────────────────
-    docker_volumes:
-      - name: datos-postgres
-
-    # ── docker_container ──────────────────────────────────────────────────────
-    docker_containers:
-      - name: web
-        image: nginx:latest
-        restart_policy: always
-        ports:
-          - "80:80"
-        networks:
-          - name: frontend
-
-      - name: db
-        image: postgres:16
-        restart_policy: unless-stopped
-        volumes:
-          - datos-postgres:/var/lib/postgresql/data
-        env:
-          POSTGRES_DB: miapp
-          POSTGRES_USER: appuser
-          POSTGRES_PASSWORD: secreto123
-        networks:
-          - name: backend
-        memory: "512m"
-
   roles:
-    - role: docker_install    # 1. instala motor + añade usuarios al grupo docker
-    - role: docker_daemon     # 2. configura daemon.json           (opcional)
-    - role: docker_network    # 3. crea redes personalizadas        (opcional)
-    - role: docker_volume     # 4. crea volúmenes persistentes      (opcional)
-    - role: docker_container  # 5. despliega los contenedores       (opcional)
+    - role: docker_install
+    - role: docker_daemon
+    - role: docker_network
+    - role: docker_volume
+    - role: docker_container

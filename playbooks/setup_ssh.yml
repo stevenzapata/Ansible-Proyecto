@@ -1,25 +1,13 @@
 ---
-- name: Instalar y configurar servidor SSH con credenciales
-  hosts: localhost
+- name: Instalar y configurar servidor SSH
+  hosts: "{{ target_hosts | default('all') }}"
   become: true
-
-  vars_files:
-    - ../group_vars/all.yml
-
-  # Sobreescribe en el playbook o pasa con -e al ejecutar
-  vars:
-    ssh_port: 22
-    ssh_permit_root_login: "no"
-    ssh_password_authentication: "no"
-    # ssh_users:
-    #   - name: deployer
-    #     public_key: "ssh-rsa AAAAB3Nza..."
 
   roles:
     - role: ssh
 
   post_tasks:
-    - name: Verificar que el servicio SSH esté corriendo
+    - name: Verificar que el servicio SSH está corriendo
       ansible.builtin.service_facts:
 
     - name: Confirmar estado del servicio

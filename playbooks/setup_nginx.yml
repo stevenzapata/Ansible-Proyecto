@@ -3,12 +3,6 @@
   hosts: "{{ target_hosts | default('webservers') }}"
   become: true
 
-  vars:
-    nginx_server_name: "{{ server_name | default('mi-sitio.local') }}"
-    nginx_server_port: "{{ http_port | default(80) }}"
-    nginx_webroot: "/var/www/{{ nginx_server_name }}"
-    nginx_deploy_test_page: true
-
   roles:
     - role: common
     - role: nginx
@@ -24,6 +18,6 @@
 
     - name: Resultado de la verificación HTTP
       ansible.builtin.debug:
-        msg: >
+        msg: >-
           Nginx en {{ inventory_hostname }}:
           {{ 'OK (HTTP ' + http_check.status | string + ')' if not http_check.failed else 'FALLO - revisar logs' }}

@@ -1,10 +1,7 @@
 ---
-- name: Actualizar el sistema en todos los hosts
+- name: Actualizar el sistema
   hosts: "{{ target_hosts | default('all') }}"
   become: true
-
-  vars:
-    update_allow_reboot: false
 
   roles:
     - role: update
@@ -14,7 +11,9 @@
       ansible.builtin.command: uname -r
       register: kernel_version
       changed_when: false
+      when: ansible_os_family != 'Windows'
 
     - name: Imprimir versión del kernel
       ansible.builtin.debug:
         msg: "Kernel activo en {{ inventory_hostname }}: {{ kernel_version.stdout }}"
+      when: ansible_os_family != 'Windows'

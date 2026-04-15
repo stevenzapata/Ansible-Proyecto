@@ -3,12 +3,6 @@
   hosts: "{{ target_hosts | default('webservers') }}"
   become: true
 
-  vars:
-    apache_server_name: "{{ server_name | default('mi-sitio.local') }}"
-    apache_server_port: "{{ http_port | default(80) }}"
-    apache_webroot: "/var/www/{{ apache_server_name }}"
-    apache_deploy_test_page: true
-
   roles:
     - role: common
     - role: apache
@@ -24,6 +18,6 @@
 
     - name: Resultado de la verificación HTTP
       ansible.builtin.debug:
-        msg: >
+        msg: >-
           Apache en {{ inventory_hostname }}:
           {{ 'OK (HTTP ' + http_check.status | string + ')' if not http_check.failed else 'FALLO - revisar logs' }}

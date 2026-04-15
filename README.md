@@ -613,6 +613,59 @@ localhost ansible_connection=local
 
 ---
 
+## Dónde configurar las variables
+
+Los playbooks **no contienen variables** — solo indican qué roles ejecutar y en qué hosts. Toda la configuración vive en el rol o en los ficheros de inventario.
+
+### Orden de precedencia (de menor a mayor)
+
+```
+roles/<rol>/defaults/main.yml   ← valores por defecto del rol (editar aquí para cambios globales)
+inventory/group_vars/all.yml    ← sobreescribe para todos los hosts
+inventory/group_vars/<grupo>.yml← sobreescribe para un grupo concreto
+inventory/host_vars/<host>.yml  ← sobreescribe para un host concreto
+ansible-playbook -e "var=valor" ← sobreescribe puntualmente desde la CLI
+```
+
+### Flujo recomendado
+
+**1. Configurar el rol** — edita `roles/<rol>/defaults/main.yml`:
+```
+roles/
+  ssh/defaults/main.yml         ← puerto, permisos, usuarios SSH
+  nginx/defaults/main.yml       ← server_name, puerto, webroot
+  postgresql/defaults/main.yml  ← versión, bases de datos, usuarios
+  firewall/defaults/main.yml    ← reglas de firewall
+  ...
+```
+
+**2. Sobreescribir por grupo o host** — si necesitas valores distintos por entorno:
+```yaml
+# inventory/group_vars/webservers.yml
+nginx_server_name: mi-sitio.com
+nginx_server_port: 8080
+
+# inventory/host_vars/web01.yml
+nginx_deploy_test_page: false
+```
+
+**3. Sobreescribir puntualmente desde la CLI** — sin tocar ningún fichero:
+```bash
+ansible-playbook playbooks/setup_nginx.yml -e "nginx_server_name=ejemplo.com"
+ansible-playbook playbooks/update_system.yml -e "update_allow_reboot=true"
+```
+
+### Qué fichero editar según el caso
+
+| Quiero cambiar... | Edito... |
+|---|---|
+| El valor por defecto de un rol para todos los hosts | `roles/<rol>/defaults/main.yml` |
+| El valor solo para un grupo de hosts | `inventory/group_vars/<grupo>.yml` |
+| El valor solo para un host concreto | `inventory/host_vars/<host>.yml` |
+| Un valor puntual sin modificar ficheros | `-e "variable=valor"` en la CLI |
+
+---
+
 ## Convenciones
 
 - **`defaults/main.yml`** — variables con menor precedencia, siempre sobreescribibles.
