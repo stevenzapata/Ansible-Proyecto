@@ -1,0 +1,7 @@
+---
+- name: Configurar backups remotos
+  hosts: "{{ target_hosts | default('all') }}"
+  become: true
+
+  roles:
+    - role: backup_remote

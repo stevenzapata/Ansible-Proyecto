@@ -1,0 +1,7 @@
+---
+- name: Instalar MariaDB y gestionar bases de datos
+  hosts: "{{ target_hosts | default('all') }}"
+  become: true
+
+  roles:
+    - role: mariadb

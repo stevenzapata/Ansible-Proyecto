@@ -1,0 +1,7 @@
+---
+- name: Configurar backups locales con programación
+  hosts: "{{ target_hosts | default('all') }}"
+  become: true
+
+  roles:
+    - role: backup_local

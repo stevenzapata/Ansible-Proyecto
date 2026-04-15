@@ -1,0 +1,8 @@
+---
+- name: Crear usuarios del sistema y configurar permisos elevados
+  hosts: "{{ target_hosts | default('all') }}"
+  become: true
+
+  roles:
+    - role: user_create
+    - role: user_sudo
