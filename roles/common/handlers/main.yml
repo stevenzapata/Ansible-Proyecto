@@ -1,12 +1,3 @@
 ---
-- name: Reiniciar systemd-timesyncd
-  ansible.builtin.service:
-    name: systemd-timesyncd
-    state: restarted
-  when: ansible_os_family != 'Windows'
-
-- name: Reiniciar Windows Time
-  ansible.windows.win_service:
-    name: w32tm
-    state: restarted
-  when: ansible_os_family == 'Windows'
+# Sin handlers — los módulos timezone y service gestionan
+# los cambios de forma inmediata sin necesitar reinicio explícito.

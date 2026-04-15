@@ -28,6 +28,15 @@
     state: started
     enabled: true
 
+- name: Desplegar configuración de PostgreSQL
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: "{{ '/etc/postgresql/' + postgresql_version | string + '/main/postgresql.conf' if ansible_os_family == 'Debian' else '/var/lib/pgsql/data/postgresql.conf' }}"
+    owner: postgres
+    group: postgres
+    mode: "0644"
+  notify: Reiniciar postgresql
+
 - name: Crear bases de datos
   community.postgresql.postgresql_db:
     name: "{{ item.name }}"

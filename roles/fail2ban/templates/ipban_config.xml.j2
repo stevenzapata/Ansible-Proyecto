@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Ansible managed — rol fail2ban (Windows IPBan)
+  Documentación: https://github.com/DigitalRuby/IPBan
+-->
+<configuration>
+  <appSettings>
+    <!-- Segundos que dura el baneo -->
+    <add key="BanTime" value="{{ ipban_bantime }}" />
+    <!-- Intentos fallidos antes de banear -->
+    <add key="MaxFailedLoginAttempts" value="{{ ipban_maxretry }}" />
+    <!-- Ventana de tiempo (segundos) para contar intentos -->
+    <add key="ExpireTime" value="{{ fail2ban_findtime | default(600) }}" />
+    <!-- Ciclo de comprobación en segundos -->
+    <add key="CycleTime" value="15" />
+  </appSettings>
+</configuration>

@@ -22,6 +22,15 @@
     state: started
     enabled: true
 
+- name: Desplegar configuración de MariaDB
+  ansible.builtin.template:
+    src: my.cnf.j2
+    dest: /etc/mysql/mariadb.conf.d/99-ansible.cnf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reiniciar mariadb
+
 - name: Establecer contraseña de root
   community.mysql.mysql_user:
     name: root

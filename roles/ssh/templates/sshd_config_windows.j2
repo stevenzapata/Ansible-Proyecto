@@ -1,0 +1,14 @@
+# Ansible managed — rol ssh (Windows OpenSSH)
+Port {{ ssh_port }}
+PermitRootLogin {{ ssh_permit_root_login }}
+PasswordAuthentication {{ ssh_password_authentication }}
+PubkeyAuthentication {{ ssh_pubkey_authentication }}
+AuthorizedKeysFile .ssh/authorized_keys
+MaxAuthTries {{ ssh_max_auth_tries }}
+ClientAliveInterval {{ ssh_client_alive_interval }}
+ClientAliveCountMax {{ ssh_client_alive_count_max }}
+AllowTcpForwarding {{ ssh_allow_tcp_forwarding }}
+X11Forwarding {{ ssh_x11_forwarding }}
+
+# Requerido por Windows OpenSSH para compatibilidad con sftp
+Subsystem sftp sftp-server.exe
