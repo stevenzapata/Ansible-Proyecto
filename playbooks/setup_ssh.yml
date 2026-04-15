@@ -5,11 +5,8 @@
 
   roles:
     - role: ssh
-
-  post_tasks:
-    - name: Verificar que el servicio SSH está corriendo
-      ansible.builtin.service_facts:
-
-    - name: Confirmar estado del servicio
-      ansible.builtin.debug:
-        msg: "SSH activo: {{ ansible_facts.services['ssh.service'].state | default('desconocido') }}"
+    - role: healthcheck
+      vars:
+        healthchecks:
+          - { type: service, name: "{{ ssh_service_name }}", name_windows: sshd }
+          - { type: port,    port: "{{ ssh_port }}" }

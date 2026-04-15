@@ -6,18 +6,9 @@
   roles:
     - role: common
     - role: apache
-
-  post_tasks:
-    - name: Verificar respuesta HTTP del servidor
-      ansible.builtin.uri:
-        url: "http://{{ ansible_host | default('localhost') }}:{{ apache_server_port }}"
-        return_content: false
-        status_code: 200
-      register: http_check
-      ignore_errors: true
-
-    - name: Resultado de la verificación HTTP
-      ansible.builtin.debug:
-        msg: >-
-          Apache en {{ inventory_hostname }}:
-          {{ 'OK (HTTP ' + http_check.status | string + ')' if not http_check.failed else 'FALLO - revisar logs' }}
+    - role: healthcheck
+      vars:
+        healthchecks:
+          - { type: service, name: "{{ apache_service_name }}", name_windows: "{{ apache_service_name_windows }}" }
+          - { type: port,    port: "{{ apache_server_port }}" }
+          - { type: http,    url: "http://localhost:{{ apache_server_port }}" }

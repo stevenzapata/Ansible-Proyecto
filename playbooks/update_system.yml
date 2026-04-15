@@ -5,15 +5,3 @@
 
   roles:
     - role: update
-
-  post_tasks:
-    - name: Mostrar versión del kernel activa
-      ansible.builtin.command: uname -r
-      register: kernel_version
-      changed_when: false
-      when: ansible_os_family != 'Windows'
-
-    - name: Imprimir versión del kernel
-      ansible.builtin.debug:
-        msg: "Kernel activo en {{ inventory_hostname }}: {{ kernel_version.stdout }}"
-      when: ansible_os_family != 'Windows'

@@ -97,7 +97,8 @@ Ansible-Proyecto/
     ├── user_create/      [Linux | Windows]
     ├── user_sudo/        [Linux | Windows]
     ├── backup_local/     [Linux | Windows]
-    └── backup_remote/    [Linux | Windows]
+    ├── backup_remote/    [Linux | Windows]
+    └── healthcheck/      [Linux | Windows]
 ```
 
 Estructura interna de cada rol con split de SO:
@@ -530,6 +531,42 @@ sudo_windows_group_members:
 
 ---
 
+### Healthcheck
+
+#### `healthcheck` `Linux | Windows`
+Verifica que los servicios desplegados están funcionando correctamente. Si algún check falla, **el play se detiene con error** — no enmascara fallos. Se usa al final de la lista de roles en los playbooks.
+
+Soporta tres tipos de comprobación:
+
+| Tipo | Qué verifica | Módulo usado |
+|---|---|---|
+| `service` | El servicio está activo y corriendo | `service_facts` + `assert` (Linux) / `win_service_info` (Windows) |
+| `port` | El puerto está abierto y escuchando | `wait_for` |
+| `http` | El servidor responde con el código HTTP esperado | `uri` |
+
+```yaml
+roles:
+  - role: nginx
+  - role: healthcheck
+    vars:
+      healthchecks:
+        - { type: service, name: nginx }
+        - { type: port,    port: "{{ nginx_server_port }}" }
+        - { type: http,    url: "http://localhost:{{ nginx_server_port }}" }
+```
+
+Para servicios con nombre distinto en Windows, usa `name_windows`:
+```yaml
+- { type: service, name: apache2, name_windows: Apache2.4 }
+```
+
+Para HTTP con código de respuesta distinto de 200:
+```yaml
+- { type: http, url: "https://mi-sitio.com/health", status_code: 204 }
+```
+
+---
+
 ### Backup
 
 #### `backup_local` `Linux | Windows`
@@ -594,9 +631,9 @@ Cada playbook es independiente — no define variables, solo orquesta roles. Tod
 |---|---|
 | `setup_common.yml` | common |
 | `update_system.yml` | update |
-| `setup_ssh.yml` | ssh |
-| `setup_nginx.yml` | nginx |
-| `setup_apache.yml` | apache |
+| `setup_ssh.yml` | ssh, healthcheck |
+| `setup_nginx.yml` | common, nginx, healthcheck |
+| `setup_apache.yml` | common, apache, healthcheck |
 | `setup_postgresql.yml` | postgresql |
 | `setup_mariadb.yml` | mariadb |
 | `setup_docker.yml` | docker_install, docker_daemon, docker_network, docker_volume, docker_container |

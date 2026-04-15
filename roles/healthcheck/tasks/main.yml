@@ -1,0 +1,40 @@
+---
+# ── Verificación de puertos ───────────────────────────────────────────────────
+- name: Verificar puerto abierto
+  ansible.builtin.wait_for:
+    host: "{{ item.host | default('localhost') }}"
+    port: "{{ item.port }}"
+    timeout: "{{ item.timeout | default(10) }}"
+  loop: "{{ healthchecks | selectattr('type', 'equalto', 'port') | list }}"
+
+# ── Verificación HTTP/HTTPS ───────────────────────────────────────────────────
+- name: Verificar respuesta HTTP/HTTPS
+  ansible.builtin.uri:
+    url: "{{ item.url }}"
+    status_code: "{{ item.status_code | default(200) }}"
+    validate_certs: "{{ item.validate_certs | default(true) }}"
+  loop: "{{ healthchecks | selectattr('type', 'equalto', 'http') | list }}"
+
+# ── Verificación de servicios (Linux) ────────────────────────────────────────
+- name: Recoger estado de servicios del sistema (Linux)
+  ansible.builtin.service_facts:
+  when:
+    - ansible_os_family != 'Windows'
+    - healthchecks | selectattr('type', 'equalto', 'service') | list | length > 0
+
+- name: Verificar servicio activo (Linux)
+  ansible.builtin.assert:
+    that: ansible_facts.services[item.name ~ '.service'].state == 'running'
+    fail_msg: "FALLO — el servicio {{ item.name }} no está activo"
+    success_msg: "OK — {{ item.name }} está activo y corriendo"
+  loop: "{{ healthchecks | selectattr('type', 'equalto', 'service') | list }}"
+  when: ansible_os_family != 'Windows'
+
+# ── Verificación de servicios (Windows) ──────────────────────────────────────
+- name: Verificar servicio activo (Windows)
+  ansible.windows.win_service_info:
+    name: "{{ item.name_windows | default(item.name) }}"
+  register: win_svc
+  failed_when: win_svc.services | length == 0 or win_svc.services[0].state != 'running'
+  loop: "{{ healthchecks | selectattr('type', 'equalto', 'service') | list }}"
+  when: ansible_os_family == 'Windows'
