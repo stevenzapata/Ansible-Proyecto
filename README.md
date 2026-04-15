@@ -43,6 +43,7 @@ Colección de roles Ansible **reutilizables y cross-platform** (Linux + Windows)
 ansible-galaxy collection install \
   ansible.posix \
   community.general \
+  community.crypto \
   community.docker \
   community.postgresql \
   community.mysql \
@@ -98,6 +99,7 @@ Ansible-Proyecto/
     ├── user_sudo/        [Linux | Windows]
     ├── backup_local/     [Linux | Windows]
     ├── backup_remote/    [Linux | Windows]
+    ├── ssh_keygen/       [Linux | Windows]
     └── healthcheck/      [Linux | Windows]
 ```
 
@@ -162,6 +164,23 @@ Actualiza todos los paquetes del sistema.
 ---
 
 ### Acceso remoto
+
+#### `ssh_keygen` `Linux | Windows`
+Genera un par de claves SSH (pública + privada) para un usuario del sistema. Pensado para que servidores como el de backup puedan conectarse a otros servidores sin contraseña. La clave pública se expone como el fact `ssh_keygen_public_key` para poder registrarla donde sea necesario.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `ssh_keygen_user` | `root` | Usuario para el que se genera la clave |
+| `ssh_keygen_type` | `ed25519` | Tipo de clave: `ed25519`, `rsa`, `ecdsa` |
+| `ssh_keygen_comment` | `ansible-managed` | Comentario identificativo en la clave pública |
+| `ssh_keygen_passphrase` | `""` | Passphrase — vacío para uso en cron/scripts |
+| `ssh_keygen_force` | `false` | Regenerar aunque ya exista |
+| `ssh_keygen_path` | `<home>/.ssh/id_<type>` | Ruta personalizada (Linux) |
+| `ssh_keygen_path_windows` | `C:\Users\<user>\.ssh\id_<type>` | Ruta personalizada (Windows) |
+
+Al finalizar imprime la clave pública con instrucciones para registrarla en el servidor destino. Requiere la colección `community.crypto` (Linux).
+
+---
 
 #### `ssh` `Linux | Windows`
 Instala OpenSSH Server y aplica hardening de configuración.
@@ -643,6 +662,7 @@ Cada playbook es independiente — no define variables, solo orquesta roles. Tod
 | `setup_user_dirs.yml` | user_discovery, user_dirs |
 | `setup_backup_local.yml` | backup_local |
 | `setup_backup_remote.yml` | backup_remote |
+| `setup_ssh_keygen.yml` | ssh_keygen |
 
 ---
 

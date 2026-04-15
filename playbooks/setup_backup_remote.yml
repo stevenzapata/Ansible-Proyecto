@@ -4,4 +4,5 @@
   become: true
 
   roles:
-    - role: backup_remote
+    - role: ssh_keygen       # genera el par de claves si no existe
+    - role: backup_remote    # configura el cron de rsync usando esa clave

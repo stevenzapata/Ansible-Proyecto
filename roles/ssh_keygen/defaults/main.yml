@@ -1,0 +1,26 @@
+---
+# ── Compartido ────────────────────────────────────────────────────────────────
+# Usuario para el que se genera el par de claves
+ssh_keygen_user: root
+
+# Tipo de clave — ed25519 es más moderno y seguro que rsa
+ssh_keygen_type: ed25519
+
+# Comentario identificativo en la clave pública
+ssh_keygen_comment: "ansible-managed"
+
+# Passphrase — vacío para uso en scripts/cron sin interacción humana
+ssh_keygen_passphrase: ""
+
+# Regenerar aunque ya exista una clave (sobrescribe)
+ssh_keygen_force: false
+
+# ── Linux ─────────────────────────────────────────────────────────────────────
+# Ruta de la clave privada — si se deja vacío se calcula automáticamente
+# a partir del home del usuario: <home>/.ssh/id_<type>
+ssh_keygen_path: ""
+
+# ── Windows ───────────────────────────────────────────────────────────────────
+# Ruta de la clave privada en Windows — si se deja vacío se usa:
+# C:\Users\<user>\.ssh\id_<type>
+ssh_keygen_path_windows: ""

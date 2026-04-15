@@ -1,0 +1,47 @@
+---
+- name: Calcular ruta de la clave (Windows)
+  ansible.builtin.set_fact:
+    _ssh_keygen_key_path_win: >-
+      {{ ssh_keygen_path_windows if ssh_keygen_path_windows | length > 0
+         else 'C:\\Users\\' ~ ssh_keygen_user ~ '\\.ssh\\id_' ~ ssh_keygen_type }}
+    _ssh_keygen_dir_win: "C:\\Users\\{{ ssh_keygen_user }}\\.ssh"
+
+- name: Asegurar que el directorio .ssh existe (Windows)
+  ansible.windows.win_file:
+    path: "{{ _ssh_keygen_dir_win }}"
+    state: directory
+
+- name: Generar par de claves SSH (Windows)
+  ansible.windows.win_shell: |
+    $keyPath = "{{ _ssh_keygen_key_path_win }}"
+    $force = [bool]::Parse("{{ ssh_keygen_force }}")
+    if ($force -and (Test-Path $keyPath)) {
+      Remove-Item $keyPath, "$keyPath.pub" -Force
+    }
+    if (-not (Test-Path $keyPath)) {
+      ssh-keygen -t {{ ssh_keygen_type }} -C "{{ ssh_keygen_comment }}" -N "" -f $keyPath
+      Write-Output "generated"
+    } else {
+      Write-Output "exists"
+    }
+  register: keygen_win
+  changed_when: "'generated' in keygen_win.stdout"
+
+- name: Leer clave pública (Windows)
+  ansible.windows.win_shell: Get-Content "{{ _ssh_keygen_key_path_win }}.pub"
+  register: win_pubkey
+  changed_when: false
+
+- name: Exponer clave pública como fact
+  ansible.builtin.set_fact:
+    ssh_keygen_public_key: "{{ win_pubkey.stdout | trim }}"
+    ssh_keygen_key_path: "{{ _ssh_keygen_key_path_win }}"
+
+- name: Mostrar clave pública generada (Windows)
+  ansible.builtin.debug:
+    msg: |
+      Clave pública para {{ ssh_keygen_user }}@{{ inventory_hostname }}:
+      {{ ssh_keygen_public_key }}
+
+      Registra esta clave en el servidor de backup ejecutando en el servidor remoto:
+        echo "{{ ssh_keygen_public_key }}" >> ~/.ssh/authorized_keys
