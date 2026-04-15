@@ -1,0 +1,56 @@
+---
+- name: Instalar Docker y desplegar contenedores
+  hosts: localhost
+  become: true
+
+  vars:
+    # Usuarios que pueden usar docker sin sudo
+    docker_users:
+      - stevenz
+
+    # Opciones del daemon (genera /etc/docker/daemon.json)
+    docker_daemon_options:
+      log-driver: json-file
+      log-opts:
+        max-size: "50m"
+        max-file: "5"
+      storage-driver: overlay2
+
+    # Redes personalizadas
+    docker_networks:
+      - name: frontend
+        driver: bridge
+      - name: backend
+        driver: bridge
+        internal: true   # sin acceso externo
+
+    # Volúmenes persistentes
+    docker_volumes:
+      - name: datos-postgres
+
+    # Contenedores a desplegar
+    docker_containers:
+      - name: web
+        image: nginx:latest
+        restart_policy: always
+        ports:
+          - "80:80"
+        networks:
+          - name: frontend
+        labels:
+          app: web
+
+      - name: db
+        image: postgres:16
+        restart_policy: unless-stopped
+        volumes:
+          - datos-postgres:/var/lib/postgresql/data
+        env:
+          POSTGRES_DB: miapp
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: secreto123
+        networks:
+          - name: backend
+
+  roles:
+    - role: docker

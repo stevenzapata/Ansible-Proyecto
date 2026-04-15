@@ -1,0 +1,54 @@
+---
+# ── 1. Instalación vía Chocolatey ─────────────────────────────────────────────
+- name: Asegurar que Chocolatey está instalado
+  chocolatey.chocolatey.win_chocolatey:
+    name: chocolatey
+    state: present
+
+- name: Instalar Docker Desktop (Windows)
+  chocolatey.chocolatey.win_chocolatey:
+    name: docker-desktop
+    state: present
+
+# ── 2. Arrancar Docker Desktop ────────────────────────────────────────────────
+- name: Iniciar servicio Docker Engine (Windows)
+  ansible.windows.win_service:
+    name: com.docker.service
+    start_mode: auto
+    state: started
+
+# ── 3. Redes ──────────────────────────────────────────────────────────────────
+# community.docker se conecta al Docker Engine local (Windows o Linux)
+- name: Crear redes Docker
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver | default('bridge') }}"
+    internal: "{{ item.internal | default(false) }}"
+    state: present
+  loop: "{{ docker_networks }}"
+  when: docker_networks | length > 0
+
+# ── 4. Volúmenes ──────────────────────────────────────────────────────────────
+- name: Crear volúmenes Docker
+  community.docker.docker_volume:
+    name: "{{ item.name }}"
+    state: present
+  loop: "{{ docker_volumes }}"
+  when: docker_volumes | length > 0
+
+# ── 5. Contenedores ───────────────────────────────────────────────────────────
+- name: Desplegar contenedores
+  community.docker.docker_container:
+    name: "{{ item.name }}"
+    image: "{{ item.image }}"
+    state: "{{ item.state | default('started') }}"
+    restart_policy: "{{ item.restart_policy | default('unless-stopped') }}"
+    ports: "{{ item.ports | default([]) }}"
+    volumes: "{{ item.volumes | default([]) }}"
+    env: "{{ item.env | default({}) }}"
+    networks: "{{ item.networks | default([]) }}"
+    labels: "{{ item.labels | default({}) }}"
+    pull: "{{ item.pull | default(true) }}"
+    command: "{{ item.command | default(omit) }}"
+  loop: "{{ docker_containers }}"
+  when: docker_containers | length > 0

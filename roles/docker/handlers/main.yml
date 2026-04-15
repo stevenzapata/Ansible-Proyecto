@@ -1,0 +1,12 @@
+---
+- name: Reiniciar docker
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+  when: ansible_os_family != 'Windows'
+
+- name: Reiniciar docker Windows
+  ansible.windows.win_service:
+    name: com.docker.service
+    state: restarted
+  when: ansible_os_family == 'Windows'
