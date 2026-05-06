@@ -1,17 +1,22 @@
 [all:vars]
 ansible_python_interpreter=/usr/bin/python3
 
-[webservers]
-web01 ansible_host=192.168.1.10
-web02 ansible_host=192.168.1.11
-
-[dbservers]
-db01 ansible_host=192.168.1.20
-
-[managed]
-web01
-web02
-db01
-
 [local]
 localhost ansible_connection=local
+
+[linux]
+# ansible_user: usuario de gestión que debe existir en la máquina destino con acceso SSH y permisos sudo
+CliLin ansible_host=192.168.169.42 ansible_user=stevenz
+
+[linux:vars]
+ansible_connection=ssh
+
+[windows]
+# ansible_user: usuario de gestión que debe existir en la máquina destino con acceso SSH y permisos de administrador
+CliWin ansible_host=192.168.169.43 ansible_user=stevenz
+
+[windows:vars]
+ansible_connection=winrm
+ansible_winrm_transport=basic
+ansible_winrm_server_cert_validation=ignore
+ansible_port=5985

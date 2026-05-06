@@ -1,39 +1,77 @@
 ---
-- name: Instalar OpenSSH Server (Windows)
+- name: Install OpenSSH Server feature
   ansible.windows.win_shell: |
-    $cap = Get-WindowsCapability -Online -Name 'OpenSSH.Server*'
+    $cap = Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH.Server*'
     if ($cap.State -ne 'Installed') {
       Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
     }
-  register: openssh_install
-  changed_when: "'Installed' not in openssh_install.stdout"
+  register: ssh_install
 
-- name: Desplegar configuración sshd (Windows)
-  ansible.windows.win_template:
-    src: sshd_config_windows.j2
-    dest: 'C:\ProgramData\ssh\sshd_config'
-  notify: Reiniciar sshd Windows
+- name: Ensure sshd service is running and enabled
+  ansible.windows.win_service:
+    name: sshd
+    state: started
+    start_mode: auto
 
-- name: Copiar claves públicas autorizadas (Windows)
-  ansible.windows.win_lineinfile:
-    path: "C:\\Users\\{{ item.name }}\\.ssh\\authorized_keys"
-    line: "{{ item.public_key }}"
-    create: true
-  loop: "{{ ssh_users }}"
-  when: ssh_users | length > 0
-
-- name: Permitir SSH en el Firewall de Windows
-  ansible.windows.win_firewall_rule:
+- name: Allow SSH through Windows Firewall
+  community.windows.win_firewall_rule:
     name: OpenSSH Server (sshd)
-    localport: "{{ ssh_port }}"
+    localport: "{{ windows_ssh_port }}"
     action: allow
     direction: in
     protocol: tcp
     state: present
     enabled: true
 
-- name: Habilitar y arrancar sshd (Windows)
-  ansible.windows.win_service:
-    name: sshd
-    start_mode: auto
-    state: started
+- name: Set default shell to PowerShell for SSH sessions
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\OpenSSH
+    name: DefaultShell
+    data: "{{ windows_ssh_default_shell }}"
+    type: string
+    state: present
+
+- name: Read local public key
+  ansible.builtin.set_fact:
+    ssh_public_key_content: "{{ lookup('file', windows_ssh_local_public_key) }}"
+
+- name: Ensure .ssh directory exists for non-admin users
+  ansible.windows.win_file:
+    path: "C:\\Users\\{{ ansible_user }}\\.ssh"
+    state: directory
+  when: not windows_ssh_admin_user
+
+- name: Copy authorized_keys for non-admin users
+  ansible.windows.win_copy:
+    content: "{{ ssh_public_key_content }}\n"
+    dest: "C:\\Users\\{{ ansible_user }}\\.ssh\\authorized_keys"
+  when: not windows_ssh_admin_user
+
+- name: Ensure ProgramData/ssh directory exists (admin users)
+  ansible.windows.win_file:
+    path: C:\ProgramData\ssh
+    state: directory
+  when: windows_ssh_admin_user
+
+# Windows requires the file to have restricted permissions or SSH will ignore it.
+# We grant temporary access to write the file, then lock it down immediately.
+- name: Write and secure authorized_keys for admin users
+  ansible.windows.win_shell: |
+    $file = "C:\ProgramData\ssh\administrators_authorized_keys"
+    if (Test-Path $file) {
+      takeown /f $file /a | Out-Null
+      icacls $file /grant "Administrators:F" | Out-Null
+    }
+    icacls "C:\ProgramData\ssh" /grant "Administrators:(OI)(CI)F" | Out-Null
+    Set-Content -Path $file -Value "{{ ssh_public_key_content }}" -Encoding UTF8 -Force
+    $acl = Get-Acl $file
+    $acl.SetAccessRuleProtection($true, $false)
+    $acl.Access | ForEach-Object { $acl.RemoveAccessRule($_) | Out-Null }
+    $adminRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+      "Administrators", "FullControl", "Allow")
+    $systemRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+      "SYSTEM", "FullControl", "Allow")
+    $acl.AddAccessRule($adminRule)
+    $acl.AddAccessRule($systemRule)
+    Set-Acl -Path $file -AclObject $acl
+  when: windows_ssh_admin_user
