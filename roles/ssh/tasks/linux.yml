@@ -1,9 +1,4 @@
 ---
-- name: Instalar servidor OpenSSH
-  ansible.builtin.package:
-    name: "{{ ssh_package }}"
-    state: present
-
 - name: Desplegar configuración de sshd
   ansible.builtin.template:
     src: sshd_config.j2

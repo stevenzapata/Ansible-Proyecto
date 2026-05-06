@@ -1,6 +1,5 @@
 ---
 # ── Linux ────────────────────────────────────────────────────────────────────
-ssh_package: openssh-server
 ssh_service_name: ssh   # En RedHat es 'sshd'
 
 ssh_port: 22
@@ -21,5 +20,7 @@ ssh_x11_forwarding: "no"
 ssh_users: []
 
 # ── Windows ──────────────────────────────────────────────────────────────────
-# Ruta de configuración de sshd en Windows
-ssh_config_dir_windows: 'C:\ProgramData\ssh'
+windows_ssh_port: 22
+windows_ssh_default_shell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+windows_ssh_local_public_key: "~/.ssh/id_ed25519.pub"
+windows_ssh_admin_user: true

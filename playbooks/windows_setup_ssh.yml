@@ -1,0 +1,19 @@
+---
+# Prerequisites: the Windows machine must have WinRM enabled and reachable.
+# After this playbook runs, future connections can use SSH instead of WinRM.
+#
+# Run with:
+#   ansible-playbook playbooks/windows_setup_ssh.yml -i inventory/hosts --ask-pass
+#
+# To override the public key path:
+#   ansible-playbook playbooks/windows_setup_ssh.yml -e "windows_ssh_local_public_key=~/.ssh/id_ed25519.pub"
+
+- name: Install SSH server and copy access keys on Windows
+  hosts: windows
+  gather_facts: true
+  become: yes
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+
+  roles:
+    - role: ssh

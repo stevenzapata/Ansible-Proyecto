@@ -1,0 +1,27 @@
+---
+# Prerequisites: password-based SSH access to the Linux machine.
+# After this playbook runs, future connections can use key-based SSH authentication.
+#
+# Run with:
+#   ansible-playbook playbooks/linux_setup_ssh.yml --ask-pass --ask-become-pass
+#
+# To override the public key path:
+#   ansible-playbook playbooks/linux_setup_ssh.yml -e "linux_ssh_local_public_key=~/.ssh/id_ed25519.pub"
+
+- name: Install SSH server and copy access keys on Linux
+  hosts: linux
+  gather_facts: true
+  become: true
+
+  vars:
+    linux_ssh_local_public_key: "~/.ssh/id_ed25519.pub"
+
+  pre_tasks:
+    - name: Build ssh_users from local public key
+      ansible.builtin.set_fact:
+        ssh_users:
+          - name: "{{ ansible_user }}"
+            public_key: "{{ lookup('file', linux_ssh_local_public_key) }}"
+
+  roles:
+    - role: ssh

@@ -35,3 +35,9 @@ __pycache__/
 # Archivos temporales
 tmp/
 temp/
+
+# Claude Code
+.claude/settings.local.json
+
+# Playbooks de prueba
+playbooks/hello.yml

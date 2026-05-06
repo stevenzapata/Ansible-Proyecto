@@ -67,6 +67,8 @@ Ansible-Proyecto/
 │   ├── setup_common.yml
 │   ├── update_system.yml
 │   ├── setup_ssh.yml
+│   ├── linux_setup_ssh.yml
+│   ├── windows_setup_ssh.yml
 │   ├── setup_nginx.yml
 │   ├── setup_apache.yml
 │   ├── setup_postgresql.yml
@@ -183,18 +185,35 @@ Al finalizar imprime la clave pública con instrucciones para registrarla en el 
 ---
 
 #### `ssh` `Linux | Windows`
-Instala OpenSSH Server y aplica hardening de configuración.
+Configura el acceso SSH seguro. En Linux aplica hardening desplegando `sshd_config` desde plantilla (con validación previa al reinicio) y gestiona `authorized_keys` por usuario — asume que el servidor SSH ya está instalado. En Windows instala la feature opcional OpenSSH Server, configura la regla de firewall, establece PowerShell como shell por defecto y gestiona `authorized_keys` tanto para usuarios normales como para administradores.
+
+**Variables Linux**
 
 | Variable | Defecto | Descripción |
 |---|---|---|
+| `ssh_service_name` | `ssh` | Nombre del servicio (`sshd` en RedHat) |
 | `ssh_port` | `22` | Puerto de escucha |
 | `ssh_permit_root_login` | `no` | Permitir login de root |
 | `ssh_password_authentication` | `no` | Autenticación por contraseña |
 | `ssh_pubkey_authentication` | `yes` | Autenticación por clave pública |
 | `ssh_max_auth_tries` | `3` | Intentos máximos de autenticación |
+| `ssh_client_alive_interval` | `300` | Segundos entre keepalives al cliente |
+| `ssh_client_alive_count_max` | `2` | Keepalives sin respuesta antes de desconectar |
+| `ssh_allow_tcp_forwarding` | `no` | Permitir reenvío de puertos TCP |
+| `ssh_x11_forwarding` | `no` | Permitir reenvío de X11 |
 | `ssh_users` | `[]` | Lista de `{name, public_key}` para autorizar |
 
+**Variables Windows**
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `windows_ssh_port` | `22` | Puerto de escucha |
+| `windows_ssh_default_shell` | `powershell.exe` | Shell por defecto para sesiones SSH |
+| `windows_ssh_local_public_key` | `~/.ssh/id_ed25519.pub` | Ruta local a la clave pública a copiar |
+| `windows_ssh_admin_user` | `true` | Si `true`, escribe en `administrators_authorized_keys` con permisos restringidos |
+
 ```yaml
+# Autorizar claves en Linux
 ssh_users:
   - name: deployer
     public_key: "ssh-rsa AAAA..."
@@ -646,23 +665,25 @@ backup_remote_password_windows: "{{ vault_backup_pass }}"
 
 Cada playbook es independiente — no define variables, solo orquesta roles. Toda la configuración vive en los defaults del rol.
 
-| Playbook | Roles que usa |
-|---|---|
-| `setup_common.yml` | common |
-| `update_system.yml` | update |
-| `setup_ssh.yml` | ssh, healthcheck |
-| `setup_nginx.yml` | common, nginx, healthcheck |
-| `setup_apache.yml` | common, apache, healthcheck |
-| `setup_postgresql.yml` | postgresql |
-| `setup_mariadb.yml` | mariadb |
-| `setup_docker.yml` | docker_install, docker_daemon, docker_network, docker_volume, docker_container |
-| `setup_firewall.yml` | firewall |
-| `setup_fail2ban.yml` | fail2ban |
-| `setup_users.yml` | user_create, user_sudo |
-| `setup_user_dirs.yml` | user_discovery, user_dirs |
-| `setup_backup_local.yml` | backup_local |
-| `setup_backup_remote.yml` | backup_remote |
-| `setup_ssh_keygen.yml` | ssh_keygen |
+| Playbook | Roles que usa | Notas |
+|---|---|---|
+| `setup_common.yml` | common | |
+| `update_system.yml` | update | |
+| `setup_ssh.yml` | ssh, healthcheck | Requiere acceso SSH ya configurado |
+| `linux_setup_ssh.yml` | ssh | Bootstrap inicial en Linux — ver uso más abajo |
+| `windows_setup_ssh.yml` | ssh | Bootstrap inicial en Windows vía WinRM — ver uso más abajo |
+| `setup_nginx.yml` | common, nginx, healthcheck | |
+| `setup_apache.yml` | common, apache, healthcheck | |
+| `setup_postgresql.yml` | postgresql | |
+| `setup_mariadb.yml` | mariadb | |
+| `setup_docker.yml` | docker_install, docker_daemon, docker_network, docker_volume, docker_container | |
+| `setup_firewall.yml` | firewall | |
+| `setup_fail2ban.yml` | fail2ban | |
+| `setup_users.yml` | user_create, user_sudo | |
+| `setup_user_dirs.yml` | user_discovery, user_dirs | |
+| `setup_backup_local.yml` | backup_local | |
+| `setup_backup_remote.yml` | backup_remote | |
+| `setup_ssh_keygen.yml` | ssh_keygen | |
 
 ---
 
@@ -672,6 +693,32 @@ Cada playbook es independiente — no define variables, solo orquesta roles. Tod
 
 ```bash
 ansible-playbook playbooks/setup_docker.yml --ask-become-pass
+```
+
+### Bootstrap SSH (primera vez, sin clave previa)
+
+Usa estos playbooks cuando el host aún no tiene SSH con clave configurado. Una vez ejecutados, el acceso futuro se hace con clave (sin contraseña).
+
+**Linux** — requiere acceso inicial por contraseña:
+```bash
+# Copia la clave pública local (~/.ssh/id_ed25519.pub) al usuario remoto
+ansible-playbook playbooks/linux_setup_ssh.yml --ask-pass --ask-become-pass
+
+# Usar una clave pública diferente
+ansible-playbook playbooks/linux_setup_ssh.yml \
+  -e "linux_ssh_local_public_key=~/.ssh/id_rsa.pub" \
+  --ask-pass --ask-become-pass
+```
+
+**Windows** — requiere WinRM habilitado en el host destino:
+```bash
+# Instala OpenSSH Server y copia la clave pública local
+ansible-playbook playbooks/windows_setup_ssh.yml --ask-pass
+
+# Usar una clave pública diferente
+ansible-playbook playbooks/windows_setup_ssh.yml \
+  -e "windows_ssh_local_public_key=~/.ssh/id_rsa.pub" \
+  --ask-pass
 ```
 
 ### Limitar la ejecución a un host o grupo
