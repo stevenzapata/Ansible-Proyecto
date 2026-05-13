@@ -1037,10 +1037,32 @@ inventory/group_vars/all/vault.yml
 
 Al estar en `group_vars/all/`, Ansible lo carga automáticamente para todos los hosts en cada ejecución. Los roles nunca contienen valores secretos — solo referencias a variables del vault con el prefijo `vault_`.
 
+### Crear el vault por primera vez
+
+Si aún no existe `inventory/group_vars/all/vault.yml`, créalo así:
+
+**1.** Crea el fichero con los secretos en texto plano:
+```bash
+cat > /tmp/vault.yml << 'EOF'
+vault_win_password: "contraseña_windows"
+vault_db_password: "contraseña_postgres"
+EOF
+```
+
+**2.** Cífralo con Ansible Vault:
+```bash
+docker exec -it ansible ansible-vault encrypt /tmp/vault.yml --output inventory/group_vars/all/vault.yml
+```
+
+Introduce la contraseña del vault cuando se solicite. Guárdala también en `docker/ssh/.vault_pass` (ver sección [Contraseña del vault automática](#contraseña-del-vault-automática)).
+
+---
+
 ### Variables actuales del vault
 
 | Variable | Usada por | Descripción |
 |---|---|---|
+| `vault_win_password` | `group_vars/windows.yml` | Contraseña del usuario de gestión en hosts Windows |
 | `vault_db_password` | `docker_container` (postgres) | Contraseña de PostgreSQL |
 
 ### Añadir un nuevo secreto
