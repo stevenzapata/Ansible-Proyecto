@@ -93,9 +93,9 @@ Ansible-Proyecto/
     ├── mariadb/          [Linux | Windows]
     ├── docker_install/   [Linux | Windows]
     ├── docker_daemon/    [Linux | Windows]
-    ├── docker_network/   [Cross-platform]
-    ├── docker_volume/    [Cross-platform]
-    ├── docker_container/ [Cross-platform]
+    ├── docker_network/   [Linux | Windows]
+    ├── docker_volume/    [Linux | Windows]
+    ├── docker_container/ [Linux | Windows]
     ├── firewall/         [Linux | Windows]
     ├── fail2ban/         [Linux | Windows]
     ├── user_discovery/   [Linux | Windows]
@@ -136,7 +136,7 @@ Todos los roles detectan automáticamente el SO del host y ejecutan las tareas c
     file: "{{ 'windows' if ansible_os_family == 'Windows' else 'linux' }}.yml"
 ```
 
-Los roles `docker_network`, `docker_volume` y `docker_container` no necesitan split porque usan la API de Docker a través de `community.docker`, que funciona igual en ambos sistemas operativos.
+Los roles `docker_network`, `docker_volume` y `docker_container` tienen split `linux.yml`/`windows.yml`. En Linux usan los módulos `community.docker.*`; en Windows usan `ansible.windows.win_powershell` con la CLI de Docker directamente, ya que los módulos Python de `community.docker` no están disponibles en Windows.
 
 ---
 
@@ -152,9 +152,10 @@ Instala paquetes base y configura zona horaria y NTP.
 | Variable | Defecto | Descripción |
 |---|---|---|
 | `common_packages` | curl, git, vim... | Paquetes a instalar (Linux) |
-| `common_packages_windows` | git, curl, 7zip... | Paquetes vía Chocolatey (Windows) |
 | `timezone` | `Europe/Madrid` | Zona horaria Linux |
+| `common_packages_windows` | git, vim, curl, 7zip... | Paquetes vía Chocolatey (Windows) |
 | `timezone_windows` | `Romance Standard Time` | Zona horaria Windows |
+| `common_ntp_servers_windows` | `[0.pool.ntp.org, 1.pool.ntp.org]` | Servidores NTP (Windows) |
 
 ---
 
@@ -236,9 +237,19 @@ Instala y configura Nginx con soporte de vhosts.
 |---|---|---|
 | `nginx_server_name` | `default` | Nombre del servidor / vhost |
 | `nginx_server_port` | `80` | Puerto de escucha |
-| `nginx_webroot` | `/var/www/html` | Directorio raíz (Linux) |
-| `nginx_webroot_windows` | `C:\tools\nginx\html` | Directorio raíz (Windows) |
 | `nginx_deploy_test_page` | `true` | Desplegar página de prueba |
+| `nginx_ssl_enabled` | `false` | Activar HTTPS |
+| `nginx_ssl_port` | `443` | Puerto SSL |
+| `nginx_webroot` | `/var/www/html` | Directorio raíz (Linux) |
+| `nginx_ssl_cert` | `/etc/ssl/certs/nginx.crt` | Ruta al certificado (Linux) |
+| `nginx_ssl_key` | `/etc/ssl/private/nginx.key` | Ruta a la clave privada (Linux) |
+| `nginx_user` | `www-data` | Usuario del proceso nginx (Linux) |
+| `nginx_worker_processes` | `auto` | Número de workers (Linux) |
+| `nginx_worker_connections` | `1024` | Conexiones por worker (Linux) |
+| `nginx_webroot_windows` | `C:\tools\nginx\html` | Directorio raíz (Windows) |
+| `nginx_conf_dir_windows` | `C:\tools\nginx\conf` | Directorio de configuración (Windows) |
+| `nginx_ssl_cert_windows` | `C:\tools\nginx\conf\ssl\nginx.crt` | Ruta al certificado (Windows) |
+| `nginx_ssl_key_windows` | `C:\tools\nginx\conf\ssl\nginx.key` | Ruta a la clave privada (Windows) |
 
 ---
 
@@ -248,10 +259,21 @@ Instala y configura Apache con soporte de VirtualHosts.
 | Variable | Defecto | Descripción |
 |---|---|---|
 | `apache_server_name` | `mi-sitio.local` | Nombre del VirtualHost |
+| `apache_server_admin` | `admin@mi-sitio.local` | Email del administrador |
 | `apache_server_port` | `80` | Puerto de escucha |
-| `apache_webroot` | `/var/www/html` | Directorio raíz (Linux) |
-| `apache_webroot_windows` | `C:\Apache24\htdocs` | Directorio raíz (Windows) |
 | `apache_modules` | rewrite, headers, ssl | Módulos a habilitar |
+| `apache_disable_default_site` | `true` | Deshabilitar el vhost por defecto |
+| `apache_deploy_test_page` | `true` | Desplegar página de prueba |
+| `apache_ssl_enabled` | `false` | Activar HTTPS |
+| `apache_ssl_port` | `443` | Puerto SSL |
+| `apache_webroot` | `/var/www/html` | Directorio raíz (Linux) |
+| `apache_ssl_cert` | `/etc/ssl/certs/apache.crt` | Ruta al certificado (Linux) |
+| `apache_ssl_key` | `/etc/ssl/private/apache.key` | Ruta a la clave privada (Linux) |
+| `apache_webroot_windows` | `C:\Apache24\htdocs` | Directorio raíz (Windows) |
+| `apache_service_name_windows` | `Apache2.4` | Nombre del servicio (Windows) |
+| `apache_vhost_dir_windows` | `C:\Apache24\conf\extra` | Directorio de vhosts (Windows) |
+| `apache_ssl_cert_windows` | `C:\Apache24\conf\ssl\apache.crt` | Ruta al certificado (Windows) |
+| `apache_ssl_key_windows` | `C:\Apache24\conf\ssl\apache.key` | Ruta a la clave privada (Windows) |
 
 ---
 
@@ -264,10 +286,12 @@ Instala PostgreSQL y gestiona bases de datos y usuarios. Requiere `community.pos
 |---|---|---|
 | `postgresql_version` | `16` | Versión a instalar |
 | `postgresql_port` | `5432` | Puerto de escucha |
-| `postgresql_listen_addresses` | `localhost` | Interfaces de escucha |
-| `postgresql_max_connections` | `100` | Conexiones máximas |
 | `postgresql_databases` | `[]` | Bases de datos a crear |
 | `postgresql_users` | `[]` | Usuarios a crear |
+| `postgresql_listen_addresses` | `localhost` | Interfaces de escucha (Linux) |
+| `postgresql_max_connections` | `100` | Conexiones máximas (Linux) |
+| `postgresql_service_name_windows` | `postgresql-x64-<version>` | Nombre del servicio (Windows) |
+| `postgresql_data_dir_windows` | `C:\Program Files\PostgreSQL\<version>\data` | Directorio de datos (Windows) |
 
 ```yaml
 postgresql_databases:
@@ -293,6 +317,8 @@ Instala MariaDB, aplica securización inicial y gestiona bases de datos y usuari
 | `mariadb_bind_address` | `127.0.0.1` | Interfaz de escucha |
 | `mariadb_databases` | `[]` | Bases de datos a crear |
 | `mariadb_users` | `[]` | Usuarios a crear |
+| `mariadb_service_name_windows` | `MySQL` | Nombre del servicio (Windows) |
+| `mariadb_install_dir_windows` | `C:\Program Files\MariaDB` | Directorio de instalación (Windows) |
 
 ```yaml
 mariadb_root_password: "{{ vault_mysql_root }}"   # definir en inventory/group_vars/all/vault.yml
@@ -315,9 +341,9 @@ mariadb_users:
 Los roles Docker están pensados para usarse en cadena: primero instalar, luego configurar el daemon y finalmente gestionar redes, volúmenes y contenedores de forma independiente.
 
 #### `docker_install` `Linux | Windows`
-Instala Docker Engine (Linux) o Docker Desktop (Windows) y arranca el servicio.
+Instala Docker Engine y arranca el servicio.
 
-> **Windows:** requiere **Windows Server 2019 o 2022**. Habilita la feature `Containers`, instala Docker Engine vía `DockerMsftProvider` y registra el servicio `docker`. No es compatible con Windows 10/11.
+> **Windows:** requiere **Windows Server 2019, 2022 o 2025**. Habilita la feature `Containers`, instala Docker Engine vía el script oficial de Microsoft (`install-docker-ce.ps1`) y registra el servicio `docker`. Solo soporta Windows Server — no compatible con Windows 10/11.
 
 | Variable | Defecto | Descripción |
 |---|---|---|
@@ -386,6 +412,7 @@ Configura el daemon de Docker mediante `daemon.json`.
 | Variable | Defecto | Descripción |
 |---|---|---|
 | `docker_daemon_options` | log-driver, storage-driver... | Dict completo para `daemon.json` |
+| `docker_daemon_config_dir_windows` | `%ProgramData%\Docker\config` | Directorio de configuración del daemon (Windows) |
 
 ```yaml
 docker_daemon_options:
@@ -400,7 +427,7 @@ docker_daemon_options:
 
 ---
 
-#### `docker_network` `Cross-platform`
+#### `docker_network` `Linux | Windows`
 Crea y gestiona redes Docker personalizadas.
 
 ```yaml
@@ -416,7 +443,7 @@ docker_networks:
 
 ---
 
-#### `docker_volume` `Cross-platform`
+#### `docker_volume` `Linux | Windows`
 Crea y gestiona volúmenes Docker persistentes.
 
 ```yaml
@@ -432,7 +459,7 @@ docker_volumes:
 
 ---
 
-#### `docker_container` `Cross-platform`
+#### `docker_container` `Linux | Windows`
 Despliega y gestiona contenedores Docker.
 
 ```yaml
@@ -499,6 +526,8 @@ Gestiona reglas de firewall. Usa `ufw` en Debian/Ubuntu, `firewalld` en RedHat/C
 |---|---|---|
 | `firewall_rules` | `[]` | Lista de reglas a aplicar |
 | `firewall_default_input` | `deny` | Política por defecto de entrada (Linux) |
+| `firewall_default_output` | `allow` | Política por defecto de salida (Linux) |
+| `firewall_default_forward` | `deny` | Política por defecto de forward (Linux) |
 | `firewall_windows_profiles` | Domain, Private, Public | Perfiles a habilitar (Windows) |
 
 ```yaml
@@ -524,12 +553,13 @@ Protección contra ataques de fuerza bruta. Usa `fail2ban` en Linux e `IPBan` en
 
 | Variable | Defecto | Descripción |
 |---|---|---|
-| `fail2ban_bantime` | `3600` | Segundos de baneo |
-| `fail2ban_maxretry` | `5` | Intentos antes del baneo |
-| `fail2ban_findtime` | `600` | Ventana de tiempo para contar intentos |
+| `fail2ban_bantime` | `3600` | Segundos de baneo (Linux) |
+| `fail2ban_maxretry` | `5` | Intentos antes del baneo (Linux) |
+| `fail2ban_findtime` | `600` | Ventana de tiempo para contar intentos (Linux) |
 | `fail2ban_jails` | `[sshd]` | Jails a habilitar (Linux) |
 | `ipban_bantime` | `3600` | Segundos de baneo (Windows) |
 | `ipban_maxretry` | `5` | Intentos antes del baneo (Windows) |
+| `ipban_install_dir_windows` | `C:\Program Files\IPBan` | Directorio de instalación IPBan (Windows) |
 
 ```yaml
 fail2ban_jails:
@@ -691,10 +721,12 @@ Crea copias de seguridad locales con fecha. Usa `rsync` + `cron` en Linux y `rob
 | Variable | Defecto | Descripción |
 |---|---|---|
 | `backup_local_sources` | `[]` | Rutas a incluir en el backup |
-| `backup_local_destination` | `/backup/local` | Destino (Linux) |
-| `backup_local_destination_windows` | `C:\Backup\local` | Destino (Windows) |
 | `backup_local_retention_days` | `7` | Días de retención |
-| `backup_local_schedule` | `{hour: 2, minute: 0}` | Programación |
+| `backup_local_schedule` | `{hour: 2, minute: 0, weekday: *}` | Programación |
+| `backup_local_destination` | `/backup/local` | Destino (Linux) |
+| `backup_local_rsync_opts` | `--archive --compress --delete --quiet` | Opciones rsync (Linux) |
+| `backup_local_destination_windows` | `C:\Backup\local` | Destino (Windows) |
+| `backup_local_robocopy_opts` | `/E /COPYALL /R:3 /W:5 /NP /NFL /NDL` | Opciones robocopy (Windows) |
 
 ```yaml
 backup_local_sources:
@@ -719,8 +751,15 @@ Envía copias de seguridad a un servidor remoto. Usa `rsync` sobre SSH en Linux 
 | `backup_remote_sources` | `[]` | Rutas a enviar |
 | `backup_remote_host` | `""` | Servidor destino (Linux) |
 | `backup_remote_user` | `backup` | Usuario SSH remoto (Linux) |
+| `backup_remote_port` | `22` | Puerto SSH (Linux) |
 | `backup_remote_path` | `/backup/remote` | Ruta remota (Linux) |
+| `backup_remote_ssh_key` | `~/.ssh/id_ed25519` | Clave SSH para la conexión (Linux) |
+| `backup_remote_rsync_opts` | `--archive --compress --delete --quiet` | Opciones rsync (Linux) |
+| `backup_remote_schedule` | `{hour: 3, minute: 0, weekday: *}` | Programación (Linux) |
 | `backup_remote_share_windows` | `""` | Recurso UNC destino (Windows) |
+| `backup_remote_user_windows` | `""` | Usuario para el recurso UNC (Windows) |
+| `backup_remote_password_windows` | `""` | Contraseña UNC — usar Vault (Windows) |
+| `backup_remote_robocopy_opts` | `/E /COPYALL /R:3 /W:5 /NP /NFL /NDL` | Opciones robocopy (Windows) |
 
 ```yaml
 # Linux
