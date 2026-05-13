@@ -37,7 +37,7 @@ tmp/
 temp/
 
 # Claude Code
-.claude/settings.local.json
+.claude/
 
 # Playbooks de prueba
 playbooks/hello.yml
