@@ -7,6 +7,12 @@ docker_packages:
   - docker-buildx-plugin
   - docker-compose-plugin
 
+# ── Windows ──────────────────────────────────────────────────────────────────
+# Instala la feature Hyper-V — necesario en VMs para usar isolation: hyperv
+docker_hyperv_isolation: false
+# Reiniciar automáticamente si la instalación de features lo requiere
+docker_allow_reboot: false
+
 # ── Compartido ───────────────────────────────────────────────────────────────
 # Usuarios añadidos al grupo docker en Linux (pueden usar docker sin sudo)
 docker_users: []

@@ -1,0 +1,9 @@
+---
+- name: Gestionar volúmenes Docker
+  community.docker.docker_volume:
+    name: "{{ item.name }}"
+    state: "{{ item.state | default('present') }}"
+    driver: "{{ item.driver | default('local') }}"
+    driver_options: "{{ item.driver_options | default({}) }}"
+  loop: "{{ docker_volumes }}"
+  when: docker_volumes | length > 0

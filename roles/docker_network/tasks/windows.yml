@@ -1,0 +1,32 @@
+---
+- name: Gestionar redes Docker (Windows)
+  ansible.windows.win_powershell:
+    script: |
+      $Ansible.Changed = $false
+      $name  = "{{ item.name }}"
+      $state = "{{ item.state | default('present') }}"
+      $exists = (docker network ls --format "{{ '{{' }}.Name{{ '}}' }}") -contains $name
+
+      if ($state -eq 'absent') {
+        if ($exists) {
+          docker network rm $name
+          $Ansible.Changed = $true
+        }
+        exit 0
+      }
+
+      if (-not $exists) {
+        $flags = @("--driver", "{{ item.driver | default('nat') }}")
+        {% if item.internal | default(false) %}
+        $flags += "--internal"
+        {% endif %}
+        docker network create @flags $name
+        if ($LASTEXITCODE -ne 0) {
+          $Ansible.Failed = $true
+          $Ansible.Result.msg = "Failed to create network $name"
+          exit 1
+        }
+        $Ansible.Changed = $true
+      }
+  loop: "{{ docker_networks }}"
+  when: docker_networks | length > 0

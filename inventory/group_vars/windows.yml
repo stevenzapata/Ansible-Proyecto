@@ -1,0 +1,36 @@
+---
+ansible_become: false
+ansible_winrm_transport: ntlm
+ansible_winrm_scheme: http
+ansible_winrm_server_cert_validation: ignore
+ansible_password: "{{ vault_win_password }}"
+
+docker_hyperv_isolation: true
+# Permitir que se reinicie el equipo al activar hyper-V
+docker_allow_reboot: true
+
+docker_daemon_options:
+  log-driver: json-file
+  log-opts:
+    max-size: "100m"
+    max-file: "3"
+
+docker_networks:
+  - name: frontend
+    driver: nat
+  - name: backend
+    driver: nat
+
+docker_volumes:
+  - name: datos-iis
+
+docker_containers:
+  - name: iis
+    image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2025
+    isolation: hyperv
+    ports:
+      - "8080:80"
+    volumes:
+      - "datos-iis:C:/inetpub/wwwroot"
+    networks:
+      - name: frontend

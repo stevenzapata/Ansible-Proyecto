@@ -21,6 +21,7 @@ Colección de roles Ansible **reutilizables y cross-platform** (Linux + Windows)
 - [Playbooks](#playbooks)
 - [Uso rápido](#uso-rápido)
 - [Dónde configurar las variables](#dónde-configurar-las-variables)
+- [Gestión de secretos con Ansible Vault](#gestión-de-secretos-con-ansible-vault)
 - [Convenciones](#convenciones)
 
 ### Leyenda de plataformas
@@ -62,7 +63,9 @@ Ansible-Proyecto/
 ├── inventory/
 │   ├── hosts
 │   └── group_vars/
-│       └── all.yml
+│       └── all/
+│           ├── main.yml    ← variables globales
+│           └── vault.yml   ← secretos cifrados con Ansible Vault
 ├── playbooks/
 │   ├── setup_common.yml
 │   ├── update_system.yml
@@ -129,7 +132,8 @@ Todos los roles detectan automáticamente el SO del host y ejecutan las tareas c
 
 ```yaml
 - name: Detectar SO e incluir tareas correspondientes
-  ansible.builtin.include_tasks: "{{ 'windows' if ansible_os_family == 'Windows' else 'linux' }}.yml"
+  ansible.builtin.include_tasks:
+    file: "{{ 'windows' if ansible_os_family == 'Windows' else 'linux' }}.yml"
 ```
 
 Los roles `docker_network`, `docker_volume` y `docker_container` no necesitan split porque usan la API de Docker a través de `community.docker`, que funciona igual en ambos sistemas operativos.
@@ -186,6 +190,8 @@ Al finalizar imprime la clave pública con instrucciones para registrarla en el 
 
 #### `ssh` `Linux | Windows`
 Configura el acceso SSH seguro. En Linux aplica hardening desplegando `sshd_config` desde plantilla (con validación previa al reinicio) y gestiona `authorized_keys` por usuario — asume que el servidor SSH ya está instalado. En Windows instala la feature opcional OpenSSH Server, configura la regla de firewall, establece PowerShell como shell por defecto y gestiona `authorized_keys` tanto para usuarios normales como para administradores.
+
+> **Importante:** el rol deshabilita la autenticación por contraseña por defecto. Si `ssh_users` está vacío al ejecutar, el rol fallará con error antes de aplicar ningún cambio — esto es intencionado para evitar quedarse sin acceso al servidor. Define siempre al menos un usuario con su clave pública antes de ejecutar.
 
 **Variables Linux**
 
@@ -270,7 +276,7 @@ postgresql_databases:
 
 postgresql_users:
   - name: appuser
-    password: "{{ vault_pg_password }}"
+    password: "{{ vault_pg_password }}"   # definir vault_pg_password en inventory/group_vars/all/vault.yml
     role_attr_flags: NOSUPERUSER,NOCREATEDB
     db: miapp
 ```
@@ -289,7 +295,7 @@ Instala MariaDB, aplica securización inicial y gestiona bases de datos y usuari
 | `mariadb_users` | `[]` | Usuarios a crear |
 
 ```yaml
-mariadb_root_password: "{{ vault_mysql_root }}"
+mariadb_root_password: "{{ vault_mysql_root }}"   # definir en inventory/group_vars/all/vault.yml
 
 mariadb_databases:
   - name: miapp
@@ -297,7 +303,7 @@ mariadb_databases:
 
 mariadb_users:
   - name: appuser
-    password: "{{ vault_db_password }}"
+    password: "{{ vault_db_password }}"            # definir en inventory/group_vars/all/vault.yml
     host: localhost
     priv: "miapp.*:ALL"
 ```
@@ -311,10 +317,66 @@ Los roles Docker están pensados para usarse en cadena: primero instalar, luego 
 #### `docker_install` `Linux | Windows`
 Instala Docker Engine (Linux) o Docker Desktop (Windows) y arranca el servicio.
 
+> **Windows:** requiere **Windows Server 2019 o 2022**. Habilita la feature `Containers`, instala Docker Engine vía `DockerMsftProvider` y registra el servicio `docker`. No es compatible con Windows 10/11.
+
 | Variable | Defecto | Descripción |
 |---|---|---|
 | `docker_packages` | docker-ce, cli, compose... | Paquetes a instalar (Linux) |
 | `docker_users` | `[]` | Usuarios añadidos al grupo docker |
+| `docker_hyperv_isolation` | `false` | Windows: instala la feature Hyper-V. Necesario en VMs para usar `isolation: hyperv` en contenedores |
+| `docker_allow_reboot` | `false` | Reiniciar automáticamente si la instalación de features lo requiere |
+
+---
+
+> **Windows en VM — Hyper-V isolation y virtualización anidada**
+>
+> Los contenedores Windows tienen dos modos de ejecución:
+>
+> | Modo | Cómo funciona | Requisito |
+> |---|---|---|
+> | **Process isolation** (defecto) | El contenedor comparte el kernel del host | La imagen debe haberse compilado para el mismo build exacto del host |
+> | **Hyper-V isolation** | Cada contenedor arranca en una VM ligera | La VM host necesita nested virtualization habilitada en el hipervisor |
+>
+> **Por qué process isolation falla en VMs actualizadas:** Microsoft publica nuevas imágenes de contenedor Windows cada Patch Tuesday. Si el host recibe actualizaciones de Windows y la imagen no coincide exactamente con el build del kernel, el contenedor falla con error `0xc0370106` o `0xc0370112`. Hyper-V isolation elimina esta restricción — el contenedor corre en su propia VM ligera independientemente de la versión del host.
+>
+> Para usar Hyper-V isolation hay que habilitar la feature de Windows y la virtualización anidada en el hipervisor.
+>
+> **Paso 1 — Habilitar nested virtualization en el hipervisor**
+>
+> *Proxmox* — la VM debe estar apagada:
+> ```bash
+> # Opción 1: desde la web UI
+> # VM → Hardware → Processors → Type: seleccionar "host" o "x86-64-v2-AES"
+>
+> # Opción 2: desde la CLI del nodo Proxmox
+> qm set <vmid> -cpu host
+> qm start <vmid>
+>
+> # Opción 3: editar directamente el fichero de configuración
+> # Añadir o modificar la línea: cpu: host
+> nano /etc/pve/qemu-server/<vmid>.conf
+> ```
+>
+> *vSphere* — la VM debe estar apagada:
+> ```
+> # Opción 1: desde la UI
+> Edit Settings → CPU → activar "Expose hardware assisted virtualization to the guest OS"
+>
+> # Opción 2: vía PowerCLI
+> ```
+> ```powershell
+> $vm = Get-VM -Name "NombreVM"
+> $spec = New-Object VMware.Vim.VirtualMachineConfigSpec
+> $spec.nestedHVEnabled = $true
+> $vm.ExtensionData.ReconfigVM($spec)
+> ```
+>
+> **Paso 2 — Instalar la feature Hyper-V en Windows Server** (vía Ansible):
+> ```bash
+> ansible SrvWin -m ansible.windows.win_feature -a "name=Hyper-V state=present restart=true include_management_tools=true"
+> ```
+>
+> **Paso 3 — Configurar el contenedor con `isolation: hyperv`** (ver sección [`docker_container`](#docker_container-cross-platform)).
 
 ---
 
@@ -409,6 +471,22 @@ docker_containers:
 | `state` | `started` | `started` / `stopped` / `absent` |
 | `restart_policy` | `unless-stopped` | `always` / `unless-stopped` / `on-failure` / `no` |
 | `pull` | `true` | Forzar pull de imagen al arrancar |
+| `isolation` | *(no definido)* | Solo Windows: `process` o `hyperv`. Usar `hyperv` en VMs — process isolation requiere que el build del host coincida exactamente con el de la imagen. |
+
+---
+
+> **Imágenes compatibles por SO**
+>
+> Docker Engine en Windows Server corre en **Windows containers mode** — solo puede ejecutar imágenes compiladas para Windows. La mayoría de imágenes públicas (nginx, postgres, redis, mysql, etc.) son **Linux-only** y no funcionan en un host Windows.
+>
+> | Host | Imágenes válidas | Ejemplos |
+> |---|---|---|
+> | Linux | Linux | `nginx`, `postgres`, `redis`, `mysql`, `mariadb`... |
+> | Windows Server | Windows Server Core | `mcr.microsoft.com/windows/servercore/iis`, `mcr.microsoft.com/mssql/server` (Windows) |
+>
+> **¿Por qué no se pueden correr imágenes Linux en Windows Server?** Docker Engine en Windows Server no tiene backend Linux. LCOW (Linux Containers on Windows) existió como feature experimental pero fue abandonada — solo funciona en Docker Desktop (Windows 10/11) mediante WSL2, que no está disponible en Windows Server.
+>
+> El patrón correcto es usar cada host para lo que está diseñado: Linux containers en hosts Linux, Windows containers en hosts Windows. Las variables `group_vars/linux.yml` y `group_vars/windows.yml` están separadas precisamente por esta razón.
 
 ---
 
@@ -687,12 +765,78 @@ Cada playbook es independiente — no define variables, solo orquesta roles. Tod
 
 ---
 
+### Ejecución de `setup_ssh.yml`
+
+Aplica hardening SSH y copia claves públicas a los hosts. **Requiere definir `ssh_users` antes de ejecutar** o el rol fallará al intentar deshabilitar el acceso por contraseña sin ninguna clave configurada.
+
+```bash
+# Ejecución estándar contra todos los hosts del inventario
+ansible-playbook playbooks/setup_ssh.yml -i inventory/ --ask-become-pass
+
+# Solo contra un host concreto
+ansible-playbook playbooks/setup_ssh.yml -i inventory/ -e "target_hosts=CliLin" --ask-become-pass
+```
+
+**Flags:**
+
+| Flag | Por qué se usa |
+|---|---|
+| `-i inventory/` | Indica el directorio de inventario. Ansible carga `hosts`, `group_vars/` y `host_vars/` desde ahí. |
+| `--ask-become-pass` / `-K` | El rol usa `become: true` para ejecutar tareas como root (editar `/etc/ssh/sshd_config`, gestionar servicios). Sin este flag falla si el usuario requiere contraseña para sudo. |
+| `-e "target_hosts=CliLin"` | Limita la ejecución a un host o grupo concreto. Sin él ataca el valor por defecto del playbook (normalmente `all`). |
+
+---
+
+### Ejecución de `setup_docker.yml`
+
+Instala Docker, configura el daemon y despliega redes, volúmenes y contenedores. Las contraseñas de contenedores (como `POSTGRES_PASSWORD`) deben estar en un fichero Ansible Vault.
+
+```bash
+# Ejecución estándar
+ansible-playbook playbooks/setup_docker.yml -i inventory/ --ask-become-pass --ask-vault-pass
+
+# Solo contra un host concreto
+ansible-playbook playbooks/setup_docker.yml -i inventory/ -e "target_hosts=CliLin" --ask-become-pass --ask-vault-pass
+```
+
+**Flags:**
+
+| Flag | Por qué se usa |
+|---|---|
+| `-i inventory/` | Indica el directorio de inventario. Carga variables de `group_vars/all/main.yml` y `group_vars/all/vault.yml`. |
+| `--ask-become-pass` / `-K` | Instalar Docker y gestionar servicios requiere privilegios de root. |
+| `--ask-vault-pass` | Descifra `inventory/group_vars/all/vault.yml` donde están los secretos (ej. `vault_db_password`). Sin este flag las variables cifradas quedan como texto literal sin resolver. |
+| `-e "target_hosts=CliLin"` | Limita la ejecución a un host o grupo concreto. |
+
+**Dónde definir los contenedores a desplegar:**
+
+Edita `inventory/group_vars/all/main.yml` y rellena las variables `docker_networks`, `docker_volumes` y `docker_containers` con los datos de tu contenedor. Consulta la sección [`docker_container`](#docker_container-cross-platform) del README para ver todos los parámetros disponibles.
+
+Para el 90% de casos de uso (nginx, postgres, redis, mariadb, apps web, etc.) funciona directamente cambiando solo las variables — no hay que tocar el rol ni el playbook.
+
+**El vault en este caso es específico para PostgreSQL.** La imagen `postgres:16` requiere la variable de entorno `POSTGRES_PASSWORD`, que al ser un secreto no debe ir en texto plano — por eso se define cifrada en el vault y se referencia con `{{ vault_db_password }}`. Si tu contenedor no usa contraseñas, no necesitas vault.
+
+```bash
+# Crear el vault con la contraseña de PostgreSQL
+echo "vault_db_password: tupassword" > /tmp/secrets.yml
+ansible-vault encrypt /tmp/secrets.yml --output inventory/group_vars/all/vault.yml
+```
+
+Cuando ejecutes el playbook con `--ask-vault-pass`, Ansible descifra el vault y sustituye `{{ vault_db_password }}` por el valor real antes de pasárselo al contenedor.
+
+---
+
 ## Uso rápido
 
 ### Ejecutar un playbook
 
 ```bash
-ansible-playbook playbooks/setup_docker.yml --ask-become-pass
+ansible-playbook playbooks/setup_docker.yml -i inventory/ --ask-become-pass
+```
+
+Para limitar la ejecución a un host o grupo concreto usa `-e target_hosts=`:
+```bash
+ansible-playbook playbooks/setup_nginx.yml -i inventory/ -e target_hosts=webservers --ask-become-pass
 ```
 
 ### Bootstrap SSH (primera vez, sin clave previa)
@@ -711,6 +855,9 @@ ansible-playbook playbooks/linux_setup_ssh.yml \
 ```
 
 **Windows** — requiere WinRM habilitado en el host destino:
+
+> Este es el único momento en que se usa WinRM. El playbook se conecta vía WinRM porque OpenSSH aún no está instalado, instala OpenSSH Server y copia la clave pública. A partir de aquí Ansible se conecta al host por SSH igual que a cualquier Linux — WinRM ya no se usa para nada más.
+
 ```bash
 # Instala OpenSSH Server y copia la clave pública local
 ansible-playbook playbooks/windows_setup_ssh.yml --ask-pass
@@ -793,11 +940,12 @@ Los playbooks **no contienen variables** — solo indican qué roles ejecutar. T
 ### Orden de precedencia (de menor a mayor)
 
 ```
-roles/<rol>/defaults/main.yml     ← valores por defecto (editar aquí para cambios globales)
-inventory/group_vars/all.yml      ← sobreescribe para todos los hosts
-inventory/group_vars/<grupo>.yml  ← sobreescribe para un grupo concreto
-inventory/host_vars/<host>.yml    ← sobreescribe para un host concreto
-ansible-playbook -e "var=valor"   ← sobreescribe puntualmente desde la CLI
+roles/<rol>/defaults/main.yml          ← valores por defecto (editar aquí para cambios globales)
+inventory/group_vars/all/main.yml      ← sobreescribe para todos los hosts
+inventory/group_vars/all/vault.yml     ← secretos cifrados (Ansible Vault)
+inventory/group_vars/<grupo>.yml       ← sobreescribe para un grupo concreto
+inventory/host_vars/<host>.yml         ← sobreescribe para un host concreto
+ansible-playbook -e "var=valor"        ← sobreescribe puntualmente desde la CLI
 ```
 
 ### Flujo recomendado
@@ -833,6 +981,66 @@ ansible-playbook playbooks/setup_nginx.yml -e "nginx_server_name=ejemplo.com"
 | El valor solo para un grupo de hosts | `inventory/group_vars/<grupo>.yml` |
 | El valor solo para un host concreto | `inventory/host_vars/<host>.yml` |
 | Un valor puntual sin modificar ficheros | `-e "variable=valor"` en la CLI |
+
+---
+
+## Gestión de secretos con Ansible Vault
+
+Todos los secretos del proyecto (contraseñas, tokens, credenciales) se almacenan cifrados en un único fichero:
+
+```
+inventory/group_vars/all/vault.yml
+```
+
+Al estar en `group_vars/all/`, Ansible lo carga automáticamente para todos los hosts en cada ejecución. Los roles nunca contienen valores secretos — solo referencias a variables del vault con el prefijo `vault_`.
+
+### Variables actuales del vault
+
+| Variable | Usada por | Descripción |
+|---|---|---|
+| `vault_db_password` | `docker_container` (postgres) | Contraseña de PostgreSQL |
+
+### Añadir un nuevo secreto
+
+Cuando un nuevo rol necesite una contraseña, el flujo es siempre el mismo:
+
+**1.** Descifra el vault:
+```bash
+docker exec -it ansible ansible-vault decrypt inventory/group_vars/all/vault.yml
+```
+
+**2.** Edita `inventory/group_vars/all/vault.yml` y añade la nueva variable:
+```yaml
+vault_db_password: mi_password
+vault_nuevo_secreto: "valor"     # ← nueva entrada
+```
+
+**3.** Vuelve a cifrarlo:
+```bash
+docker exec -it ansible ansible-vault encrypt inventory/group_vars/all/vault.yml
+```
+
+**4.** En el rol o en `group_vars`, referencia la variable:
+```yaml
+alguna_password: "{{ vault_nuevo_secreto }}"
+```
+
+### Contraseña del vault automática
+
+Como `vault.yml` está en `group_vars/all/`, Ansible intenta cargarlo en **cada ejecución**, incluso en playbooks que no usan secretos. Para no tener que escribir `--ask-vault-pass` cada vez, configura un fichero de contraseña:
+
+**1.** Crea el fichero con tu contraseña del vault en la carpeta `ssh/` del proyecto Docker (se monta en el contenedor y persiste entre reinicios):
+```bash
+echo "tu_contraseña_vault" > docker/ssh/.vault_pass
+chmod 600 docker/ssh/.vault_pass
+```
+
+**2.** Apunta a él en `ansible.cfg` (ya configurado):
+```ini
+vault_password_file = /root/.ssh/.vault_pass
+```
+
+A partir de ahí Ansible descifra el vault automáticamente y no necesitas añadir ningún flag extra a los comandos.
 
 ---
 

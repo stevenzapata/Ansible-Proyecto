@@ -1,0 +1,34 @@
+---
+docker_volumes:
+  - name: datos-postgres
+  - name: datos-redis
+
+docker_containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /srv/web:/usr/share/nginx/html:ro
+    networks:
+      - name: frontend
+
+  - name: postgres
+    image: postgres:16
+    env:
+      POSTGRES_DB: miapp
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: "{{ vault_db_password }}"
+    volumes:
+      - datos-postgres:/var/lib/postgresql/data
+    networks:
+      - name: backend
+    memory: "512m"
+
+  - name: redis
+    image: redis:7-alpine
+    volumes:
+      - datos-redis:/data
+    networks:
+      - name: backend
