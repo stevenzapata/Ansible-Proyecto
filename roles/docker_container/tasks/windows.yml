@@ -1,0 +1,74 @@
+---
+- name: Gestionar contenedores Docker (Windows)
+  ansible.windows.win_powershell:
+    script: |
+      $Ansible.Changed = $false
+      $name   = "{{ item.name }}"
+      $image  = "{{ item.image }}"
+      $state  = "{{ item.state | default('started') }}"
+
+      $exists  = (docker ps -a --filter ("name=^" + $name + "$") --format "{{ '{{' }}.Names{{ '}}' }}") -join ""
+      $running = (docker ps    --filter ("name=^" + $name + "$") --format "{{ '{{' }}.Names{{ '}}' }}") -join ""
+
+      if ($state -eq 'absent') {
+        if ($exists) { docker rm -f $name; $Ansible.Changed = $true }
+        exit 0
+      }
+      if ($state -eq 'stopped') {
+        if ($running) { docker stop $name; $Ansible.Changed = $true }
+        exit 0
+      }
+      if ($running) { exit 0 }
+
+      {% if item.pull | default(true) %}
+      {% if item.platform is defined %}
+      docker pull --platform {{ item.platform }} $image
+      {% else %}
+      docker pull $image
+      {% endif %}
+      if ($LASTEXITCODE -ne 0) { throw "docker pull failed for image: $image" }
+      {% endif %}
+
+      if ($exists) { docker rm -f $name }
+
+      $cmd = @("--detach", "--name", $name, "--restart", "{{ item.restart_policy | default('unless-stopped') }}")
+
+      {% for port in item.ports | default([]) %}
+      $cmd += @("-p", "{{ port }}")
+      {% endfor %}
+      {% for vol in item.volumes | default([]) %}
+      $cmd += @("-v", "{{ vol }}")
+      {% endfor %}
+      {% for key, value in (item.env | default({})).items() %}
+      $cmd += @("-e", "{{ key }}={{ value }}")
+      {% endfor %}
+      {% if item.networks | default([]) | length > 0 %}
+      $cmd += @("--network", "{{ item.networks[0].name }}")
+      {% endif %}
+      {% if item.memory is defined %}
+      $cmd += @("--memory", "{{ item.memory }}")
+      {% endif %}
+      {% if item.isolation is defined %}
+      $cmd += @("--isolation", "{{ item.isolation }}")
+      {% endif %}
+      {% if item.platform is defined %}
+      $cmd += @("--platform", "{{ item.platform }}")
+      {% endif %}
+
+      $cmd += $image
+
+      {% if item.command is defined %}
+      $cmd += "{{ item.command }}"
+      {% endif %}
+
+      docker run @cmd
+      if ($LASTEXITCODE -ne 0) { throw "docker run failed for container: $name" }
+      $Ansible.Changed = $true
+
+      {% for network in item.networks | default([]) %}
+      {% if not loop.first %}
+      docker network connect "{{ network.name }}" $name
+      {% endif %}
+      {% endfor %}
+  loop: "{{ docker_containers }}"
+  when: docker_containers | length > 0

@@ -1,0 +1,23 @@
+---
+- name: Gestionar volúmenes Docker (Windows)
+  ansible.windows.win_powershell:
+    script: |
+      $Ansible.Changed = $false
+      $name  = "{{ item.name }}"
+      $state = "{{ item.state | default('present') }}"
+      $exists = (docker volume ls --format "{{ '{{' }}.Name{{ '}}' }}") -contains $name
+
+      if ($state -eq 'absent') {
+        if ($exists) {
+          docker volume rm $name
+          $Ansible.Changed = $true
+        }
+        exit 0
+      }
+
+      if (-not $exists) {
+        docker volume create --driver "{{ item.driver | default('local') }}" $name
+        $Ansible.Changed = $true
+      }
+  loop: "{{ docker_volumes }}"
+  when: docker_volumes | length > 0

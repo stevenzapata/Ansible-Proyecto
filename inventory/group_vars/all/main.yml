@@ -1,8 +1,19 @@
 ---
 # Variables globales para todos los hosts
 
+ssh_users:
+  - name: stevenz
+    public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ6DbiUTvvDqTIC/rhwca2gA8AUTNh62O/Q9vNzzvMnG"
+
 # Usuario de administración
 admin_user: ansible
+
+docker_networks:
+  - name: frontend
+    driver: bridge
+  - name: backend
+    driver: bridge
+    internal: true
 
 # Zona horaria del sistema
 timezone: Europe/Madrid

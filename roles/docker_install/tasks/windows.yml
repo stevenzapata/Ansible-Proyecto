@@ -1,16 +1,60 @@
 ---
-- name: Asegurar que Chocolatey está instalado
-  chocolatey.chocolatey.win_chocolatey:
-    name: chocolatey
+- name: Habilitar feature Containers (Windows Server)
+  ansible.windows.win_feature:
+    name: Containers
     state: present
+  register: containers_feature
 
-- name: Instalar Docker Desktop (Windows)
-  chocolatey.chocolatey.win_chocolatey:
-    name: docker-desktop
+- name: Habilitar feature Hyper-V (requerido para isolation hyperv en VMs)
+  ansible.windows.win_feature:
+    name: Hyper-V
     state: present
+    include_management_tools: true
+  register: hyperv_feature
+  when: docker_hyperv_isolation | default(false) | bool
 
-- name: Habilitar y arrancar el servicio Docker
+- name: Reiniciar tras habilitar features
+  ansible.windows.win_reboot:
+    reboot_timeout: 300
+  when:
+    - docker_allow_reboot | bool
+    - containers_feature.changed or (hyperv_feature is not skipped and hyperv_feature.changed)
+
+- name: Comprobar si Docker ya está instalado
+  ansible.windows.win_powershell:
+    script: |
+      $svc = Get-Service docker -ErrorAction SilentlyContinue
+      if ($svc) { $Ansible.Result = "installed" } else { $Ansible.Result = "missing" }
+  register: docker_check
+  changed_when: false
+
+- name: Instalar Docker Engine via script oficial Microsoft
+  ansible.windows.win_powershell:
+    script: |
+      $scriptPath = "$env:TEMP\install-docker-ce.ps1"
+      Invoke-WebRequest -UseBasicParsing `
+        -Uri "https://raw.githubusercontent.com/microsoft/Windows-Containers/Main/helpful_tools/Install-DockerCE/install-docker-ce.ps1" `
+        -OutFile $scriptPath
+      & $scriptPath -NoRestart
+      $Ansible.Changed = $true
+  when: docker_check.result != "installed"
+  register: docker_install_result
+
+- name: Reiniciar tras instalar Docker Engine
+  ansible.windows.win_reboot:
+    reboot_timeout: 300
+  when: docker_install_result is changed
+
+- name: Arrancar y habilitar servicio Docker
   ansible.windows.win_service:
-    name: com.docker.service
-    start_mode: auto
+    name: docker
     state: started
+    start_mode: auto
+  when: docker_check.result != "installed" or docker_install_result is changed
+
+- name: Añadir usuarios al grupo docker-users
+  ansible.windows.win_group_membership:
+    name: docker-users
+    members: "{{ docker_users }}"
+    state: present
+  when: docker_users | length > 0

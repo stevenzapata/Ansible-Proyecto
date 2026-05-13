@@ -1,0 +1,9 @@
+---
+- name: Crear redes Docker
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver | default('bridge') }}"
+    internal: "{{ item.internal | default(false) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ docker_networks }}"
+  when: docker_networks | length > 0
