@@ -892,7 +892,7 @@ ansible-playbook playbooks/linux_setup_ssh.yml \
 
 **Windows** — requiere WinRM habilitado en el host destino:
 
-> Este es el único momento en que se usa WinRM. El playbook se conecta vía WinRM porque OpenSSH aún no está instalado, instala OpenSSH Server y copia la clave pública. A partir de aquí Ansible se conecta al host por SSH igual que a cualquier Linux — WinRM ya no se usa para nada más.
+> El proyecto usa WinRM para toda la comunicación con hosts Windows. Este playbook es opcional: instala OpenSSH Server en el host Windows por si se quiere conectar por SSH en lugar de WinRM, pero no es necesario para el resto de playbooks.
 
 ```bash
 # Instala OpenSSH Server y copia la clave pública local
@@ -1002,6 +1002,12 @@ nginx_server_port: 8080
 
 # inventory/host_vars/db01.yml
 postgresql_max_connections: 200
+```
+
+Un ejemplo real del proyecto: todos los hosts Windows usan NTLM (`group_vars/windows.yml`), pero CliWin requiere autenticación básica, por lo que se sobreescribe solo para ese host:
+```yaml
+# inventory/host_vars/CliWin.yml
+ansible_winrm_transport: basic
 ```
 
 **3. Puntual desde la CLI** — sin tocar ningún fichero:
