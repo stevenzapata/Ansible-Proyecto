@@ -397,12 +397,16 @@ Instala Docker Engine y arranca el servicio.
 > $vm.ExtensionData.ReconfigVM($spec)
 > ```
 >
-> **Paso 2 — Instalar la feature Hyper-V en Windows Server** (vía Ansible):
-> ```bash
-> ansible SrvWin -m ansible.windows.win_feature -a "name=Hyper-V state=present restart=true include_management_tools=true"
-> ```
+> **Paso 2 — Activar `docker_hyperv_isolation` en el inventario:**
 >
-> **Paso 3 — Configurar el contenedor con `isolation: hyperv`** (ver sección [`docker_container`](#docker_container-cross-platform)).
+> El rol `docker_install` instala la feature Hyper-V automáticamente cuando esta variable está activa. En `group_vars/windows.yml`:
+> ```yaml
+> docker_hyperv_isolation: true
+> docker_allow_reboot: true   # reinicia si la instalación lo requiere
+> ```
+> A continuación ejecuta el playbook `setup_docker.yml` — no hace falta ningún comando manual.
+>
+> **Paso 3 — Configurar el contenedor con `isolation: hyperv`** (ver sección [`docker_container`](#docker_container-linux--windows)).
 
 ---
 
