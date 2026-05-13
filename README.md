@@ -300,7 +300,7 @@ postgresql_databases:
 
 postgresql_users:
   - name: appuser
-    password: "{{ vault_pg_password }}"   # definir vault_pg_password en inventory/group_vars/all/vault.yml
+    password: "{{ vault_db_password }}"   # definir vault_db_password en inventory/group_vars/all/vault.yml
     role_attr_flags: NOSUPERUSER,NOCREATEDB
     db: miapp
 ```
@@ -836,10 +836,10 @@ Instala Docker, configura el daemon y despliega redes, volúmenes y contenedores
 
 ```bash
 # Ejecución estándar
-ansible-playbook playbooks/setup_docker.yml -i inventory/ --ask-become-pass --ask-vault-pass
+docker exec -it ansible ansible-playbook playbooks/setup_docker.yml -i inventory/ --ask-become-pass
 
 # Solo contra un host concreto
-ansible-playbook playbooks/setup_docker.yml -i inventory/ -e "target_hosts=CliLin" --ask-become-pass --ask-vault-pass
+docker exec -it ansible ansible-playbook playbooks/setup_docker.yml -i inventory/ -e "target_hosts=CliLin" --ask-become-pass
 ```
 
 **Flags:**
@@ -848,24 +848,17 @@ ansible-playbook playbooks/setup_docker.yml -i inventory/ -e "target_hosts=CliLi
 |---|---|
 | `-i inventory/` | Indica el directorio de inventario. Carga variables de `group_vars/all/main.yml` y `group_vars/all/vault.yml`. |
 | `--ask-become-pass` / `-K` | Instalar Docker y gestionar servicios requiere privilegios de root. |
-| `--ask-vault-pass` | Descifra `inventory/group_vars/all/vault.yml` donde están los secretos (ej. `vault_db_password`). Sin este flag las variables cifradas quedan como texto literal sin resolver. |
 | `-e "target_hosts=CliLin"` | Limita la ejecución a un host o grupo concreto. |
+
+> El vault se descifra automáticamente gracias a `vault_password_file` en `ansible.cfg`. No hace falta `--ask-vault-pass`.
 
 **Dónde definir los contenedores a desplegar:**
 
-Edita `inventory/group_vars/all/main.yml` y rellena las variables `docker_networks`, `docker_volumes` y `docker_containers` con los datos de tu contenedor. Consulta la sección [`docker_container`](#docker_container-cross-platform) del README para ver todos los parámetros disponibles.
+Edita `inventory/group_vars/linux.yml` o `inventory/group_vars/windows.yml` según el SO del host y rellena `docker_networks`, `docker_volumes` y `docker_containers`. Consulta la sección [`docker_container`](#docker_container-linux--windows) para ver todos los parámetros disponibles.
 
 Para el 90% de casos de uso (nginx, postgres, redis, mariadb, apps web, etc.) funciona directamente cambiando solo las variables — no hay que tocar el rol ni el playbook.
 
-**El vault en este caso es específico para PostgreSQL.** La imagen `postgres:16` requiere la variable de entorno `POSTGRES_PASSWORD`, que al ser un secreto no debe ir en texto plano — por eso se define cifrada en el vault y se referencia con `{{ vault_db_password }}`. Si tu contenedor no usa contraseñas, no necesitas vault.
-
-```bash
-# Crear el vault con la contraseña de PostgreSQL
-echo "vault_db_password: tupassword" > /tmp/secrets.yml
-ansible-vault encrypt /tmp/secrets.yml --output inventory/group_vars/all/vault.yml
-```
-
-Cuando ejecutes el playbook con `--ask-vault-pass`, Ansible descifra el vault y sustituye `{{ vault_db_password }}` por el valor real antes de pasárselo al contenedor.
+**Secretos en contenedores:** si tu contenedor necesita contraseñas (ej. `POSTGRES_PASSWORD`), defínelas en el vault y referencíalas con `{{ vault_nombre_variable }}`. Consulta la sección [Gestión de secretos con Ansible Vault](#gestión-de-secretos-con-ansible-vault).
 
 ---
 
@@ -1064,6 +1057,9 @@ Introduce la contraseña del vault cuando se solicite. Guárdala también en `do
 |---|---|---|
 | `vault_win_password` | `group_vars/windows.yml` | Contraseña del usuario de gestión en hosts Windows |
 | `vault_db_password` | `docker_container` (postgres) | Contraseña de PostgreSQL |
+| `vault_mysql_root` | `mariadb` | Contraseña de root de MariaDB |
+| `vault_user_hash` | `user_create` | Hash de contraseña de usuario del sistema |
+| `vault_backup_pass` | `backup_remote` | Contraseña del recurso UNC de backup (Windows) |
 
 ### Añadir un nuevo secreto
 

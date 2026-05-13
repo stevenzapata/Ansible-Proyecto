@@ -9,4 +9,5 @@
       Ejecuta el rol 'user_discovery' antes que 'user_dirs'.
 
 - name: Detectar SO e incluir tareas correspondientes
-  ansible.builtin.include_tasks: "{{ 'windows' if ansible_os_family == 'Windows' else 'linux' }}.yml"
+  ansible.builtin.include_tasks:
+    file: "{{ 'windows' if ansible_os_family == 'Windows' else 'linux' }}.yml"

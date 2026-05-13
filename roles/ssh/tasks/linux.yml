@@ -1,4 +1,14 @@
 ---
+- name: Verificar que hay claves definidas antes de deshabilitar password auth
+  ansible.builtin.fail:
+    msg: >
+      ssh_users está vacío pero ssh_password_authentication es 'no'.
+      Define al menos un usuario con su clave pública en ssh_users antes de continuar,
+      o establece ssh_password_authentication: 'yes'.
+  when:
+    - ssh_users | length == 0
+    - ssh_password_authentication == "no"
+
 - name: Desplegar configuración de sshd
   ansible.builtin.template:
     src: sshd_config.j2

@@ -1,10 +1,4 @@
 ---
-# community.docker se conecta a la API de Docker → funciona igual en Linux y Windows
-- name: Crear redes Docker
-  community.docker.docker_network:
-    name: "{{ item.name }}"
-    driver: "{{ item.driver | default('bridge') }}"
-    internal: "{{ item.internal | default(false) }}"
-    state: "{{ item.state | default('present') }}"
-  loop: "{{ docker_networks }}"
-  when: docker_networks | length > 0
+- name: Detectar SO e incluir tareas correspondientes
+  ansible.builtin.include_tasks:
+    file: "{{ 'windows' if ansible_os_family == 'Windows' else 'linux' }}.yml"
