@@ -1,4 +1,7 @@
 ---
+# Si es true, el sistema se reinicia automáticamente tras instalar actualizaciones
+update_allow_reboot: false
+
 docker_volumes:
   - name: datos-postgres
   - name: datos-redis
