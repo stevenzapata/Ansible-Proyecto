@@ -38,6 +38,15 @@ Colección de roles Ansible **reutilizables y cross-platform** (Linux + Windows)
 - Ansible >= 2.12
 - Python >= 3.8
 
+### Requisitos para hosts Windows Server
+
+**WinRM viene habilitado por defecto en Windows Server** (2019/2022/2025) — no hace falta configurarlo manualmente. Ansible conecta directamente con NTLM en cuanto la máquina está en red.
+
+El único requisito previo es habilitar la virtualización anidada en el hipervisor si se va a usar Hyper-V isolation para contenedores Docker (ver sección [Hyper-V isolation](#hyper-v-isolation-en-vms)):
+
+- **Proxmox**: `qm set <vmid> -cpu host` (con la VM apagada)
+- **vSphere**: activar *Expose hardware-assisted virtualization* en la configuración de CPU de la VM
+
 ### Colecciones necesarias
 
 ```bash

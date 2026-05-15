@@ -14,7 +14,8 @@ ansible_connection=ssh
 [windows]
 # ansible_user: usuario de gestión que debe existir en la máquina destino con acceso WinRM y permisos de administrador
 CliWin ansible_host=YOUR_HOST_IP ansible_user=stevenz
-SrvWin ansible_host=YOUR_HOST_IP ansible_user=stevenz
+SrvWin  ansible_host=YOUR_HOST_IP ansible_user=stevenz
+SrvWin2 ansible_host=YOUR_HOST_IP ansible_user=stevenz
 
 [windows:vars]
 ansible_connection=winrm
