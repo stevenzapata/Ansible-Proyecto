@@ -1,0 +1,10 @@
+---
+proxmox_host: 192.168.169.115
+proxmox_port: 8006
+proxmox_user: root@pam
+proxmox_token_name: gestor-vms
+proxmox_token_secret: "{{ vault_proxmox_token_secret }}"
+proxmox_node: pve-nodo1
+proxmox_snapshot_prefix: ansible_pre-update
+proxmox_task_retries: 24
+proxmox_task_delay: 5

@@ -93,7 +93,8 @@ Ansible-Proyecto/
 │   ├── setup_user_dirs.yml
 │   ├── setup_backup_local.yml
 │   ├── setup_backup_remote.yml
-│   └── snapshot_and_update.yml
+│   ├── snapshot_and_update.yml
+│   └── proxmox_cleanup_snapshots.yml
 └── roles/
     ├── common/           [Linux | Windows]
     ├── update/           [Linux | Windows]
@@ -117,7 +118,8 @@ Ansible-Proyecto/
     ├── backup_remote/    [Linux | Windows]
     ├── ssh_keygen/       [Linux | Windows]
     ├── healthcheck/      [Linux | Windows]
-    └── proxmox_snapshot/ [Linux | Windows]
+    ├── proxmox_snapshot/ [Linux | Windows]
+    └── proxmox_snapshot_cleanup/
 ```
 
 Estructura interna de cada rol con split de SO:
@@ -797,7 +799,7 @@ backup_remote_password_windows: "{{ vault_backup_pass }}"
 ### Infraestructura
 
 #### `proxmox_snapshot` `Linux | Windows`
-Crea un snapshot de la VM en Proxmox antes de cualquier operación. Consulta la API REST de Proxmox desde `localhost` (el contenedor Ansible), localiza la VM por nombre coincidente con el host de Ansible, crea el snapshot y espera a que termine. Si el snapshot falla, el playbook se detiene y no continúa.
+Crea un snapshot de la VM en Proxmox antes de cualquier operación. Consulta la API REST de Proxmox desde `localhost`, localiza la VM por nombre coincidente con el host de Ansible, borra el snapshot anterior con el mismo prefijo si existe, y crea uno nuevo con la fecha del día (`ansible_pre-update-YYYY-MM-DD`). Si el snapshot falla, el playbook se detiene y no ejecuta la actualización.
 
 | Variable | Defecto | Descripción |
 |---|---|---|
@@ -807,12 +809,21 @@ Crea un snapshot de la VM en Proxmox antes de cualquier operación. Consulta la 
 | `proxmox_token_name` | `gestor-vms` | Nombre del API token |
 | `proxmox_token_secret` | `{{ vault_proxmox_token_secret }}` | Secreto del token — definir en vault |
 | `proxmox_node` | `pve-nodo1` | Nombre del nodo Proxmox |
-| `proxmox_snapshot_prefix` | `ansible_pre-update` | Prefijo del snapshot — el nombre final incluye la fecha: `ansible_pre-update-2026-05-18` |
+| `proxmox_snapshot_prefix` | `ansible_pre-update` | Prefijo del snapshot — nombre final: `ansible_pre-update-2026-05-18` |
 | `proxmox_snapshot_description` | `Snapshot automático pre-actualización — Ansible` | Descripción del snapshot |
 | `proxmox_task_retries` | `24` | Intentos de polling para esperar al snapshot |
 | `proxmox_task_delay` | `5` | Segundos entre cada intento de polling |
 
 > El nombre del host en Ansible (`inventory_hostname`) debe coincidir exactamente con el nombre de la VM en Proxmox para que el rol localice el VMID automáticamente.
+
+---
+
+#### `proxmox_snapshot_cleanup`
+Elimina todos los snapshots con prefijo `ansible_pre-update` de **todas las VMs** del nodo Proxmox. Corre íntegramente contra `localhost` sin necesidad de conectar a los hosts gestionados. Al finalizar muestra un resumen separado de snapshots eliminados correctamente y los que fallaron (por ejemplo, VMs con TPM activo encendidas).
+
+> Las VMs con TPM requieren estar apagadas para poder borrar sus snapshots. Si la VM está encendida, el snapshot se reporta como fallido pero el playbook continúa con las demás VMs.
+
+Usa las mismas variables de conexión que `proxmox_snapshot` (`proxmox_host`, `proxmox_token_secret`, etc.).
 
 ---
 
@@ -840,6 +851,7 @@ Cada playbook es independiente — no define variables, solo orquesta roles. Tod
 | `setup_backup_remote.yml` | backup_remote | |
 | `setup_ssh_keygen.yml` | ssh_keygen | |
 | `snapshot_and_update.yml` | proxmox_snapshot, update | Snapshot en Proxmox antes de actualizar — aborta si el snapshot falla |
+| `proxmox_cleanup_snapshots.yml` | proxmox_snapshot_cleanup | Elimina todos los snapshots `ansible_pre-update` de todas las VMs del nodo |
 
 ---
 
