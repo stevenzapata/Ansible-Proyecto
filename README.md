@@ -807,7 +807,7 @@ Crea un snapshot de la VM en Proxmox antes de cualquier operación. Consulta la 
 | `proxmox_token_name` | `gestor-vms` | Nombre del API token |
 | `proxmox_token_secret` | `{{ vault_proxmox_token_secret }}` | Secreto del token — definir en vault |
 | `proxmox_node` | `pve-nodo1` | Nombre del nodo Proxmox |
-| `proxmox_snapshot_name` | `ansible_pre-update` | Nombre del snapshot (fijo, se sobreescribe en cada ejecución) |
+| `proxmox_snapshot_prefix` | `ansible_pre-update` | Prefijo del snapshot — el nombre final incluye la fecha: `ansible_pre-update-2026-05-18` |
 | `proxmox_snapshot_description` | `Snapshot automático pre-actualización — Ansible` | Descripción del snapshot |
 | `proxmox_task_retries` | `24` | Intentos de polling para esperar al snapshot |
 | `proxmox_task_delay` | `5` | Segundos entre cada intento de polling |

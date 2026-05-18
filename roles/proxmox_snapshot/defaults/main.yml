@@ -5,7 +5,7 @@ proxmox_user: root@pam
 proxmox_token_name: gestor-vms
 proxmox_token_secret: "{{ vault_proxmox_token_secret }}"
 proxmox_node: pve-nodo1
-proxmox_snapshot_name: ansible_pre-update
+proxmox_snapshot_prefix: ansible_pre-update
 proxmox_snapshot_description: "Snapshot automático pre-actualización — Ansible"
 proxmox_task_retries: 24
 proxmox_task_delay: 5
