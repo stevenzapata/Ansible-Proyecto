@@ -1,0 +1,59 @@
+---
+- name: Obtener lista de VMs de Proxmox
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+  register: proxmox_vms
+  delegate_to: localhost
+  become: false
+
+- name: Buscar VM con nombre {{ inventory_hostname }}
+  ansible.builtin.set_fact:
+    proxmox_matching_vms: "{{ proxmox_vms.json.data | selectattr('name', 'equalto', inventory_hostname) | list }}"
+
+- name: Verificar que el host existe en Proxmox
+  ansible.builtin.fail:
+    msg: "No se encontró ninguna VM en Proxmox con el nombre '{{ inventory_hostname }}'. Comprueba que el nombre del host en Ansible coincide exactamente con el nombre de la VM en Proxmox."
+  when: proxmox_matching_vms | length == 0
+
+- name: Establecer VMID para {{ inventory_hostname }}
+  ansible.builtin.set_fact:
+    proxmox_vmid: "{{ proxmox_matching_vms[0].vmid }}"
+
+- name: Crear snapshot {{ proxmox_snapshot_name }} en {{ inventory_hostname }} (VMID {{ proxmox_vmid }})
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vmid }}/snapshot"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    body_format: form-urlencoded
+    body:
+      snapname: "{{ proxmox_snapshot_name }}"
+      description: "{{ proxmox_snapshot_description }}"
+    validate_certs: false
+    status_code: 200
+  register: proxmox_snapshot_task
+  delegate_to: localhost
+  become: false
+
+- name: Esperar a que el snapshot complete
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/tasks/{{ proxmox_snapshot_task.json.data | urlencode }}/status"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+  register: proxmox_task_status
+  delegate_to: localhost
+  become: false
+  until: proxmox_task_status.json.data.status != "running"
+  retries: "{{ proxmox_task_retries }}"
+  delay: "{{ proxmox_task_delay }}"
+
+- name: Verificar que el snapshot se creó correctamente
+  ansible.builtin.fail:
+    msg: "El snapshot '{{ proxmox_snapshot_name }}' falló para {{ inventory_hostname }} (VMID {{ proxmox_vmid }}): {{ proxmox_task_status.json.data.exitstatus | default('sin respuesta') }}"
+  when: proxmox_task_status.json.data.exitstatus | default('') != "OK"

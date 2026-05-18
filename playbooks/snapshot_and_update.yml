@@ -1,0 +1,8 @@
+---
+- name: Snapshot pre-actualización y actualización del sistema
+  hosts: "{{ target_hosts | default('all') }}"
+  become: true
+
+  roles:
+    - role: proxmox_snapshot
+    - role: update

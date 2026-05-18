@@ -18,6 +18,7 @@ Colección de roles Ansible **reutilizables y cross-platform** (Linux + Windows)
   - [Seguridad](#seguridad)
   - [Usuarios](#usuarios)
   - [Backup](#backup)
+  - [Infraestructura](#infraestructura)
 - [Playbooks](#playbooks)
 - [Uso rápido](#uso-rápido)
 - [Dónde configurar las variables](#dónde-configurar-las-variables)
@@ -91,7 +92,8 @@ Ansible-Proyecto/
 │   ├── setup_users.yml
 │   ├── setup_user_dirs.yml
 │   ├── setup_backup_local.yml
-│   └── setup_backup_remote.yml
+│   ├── setup_backup_remote.yml
+│   └── snapshot_and_update.yml
 └── roles/
     ├── common/           [Linux | Windows]
     ├── update/           [Linux | Windows]
@@ -114,7 +116,8 @@ Ansible-Proyecto/
     ├── backup_local/     [Linux | Windows]
     ├── backup_remote/    [Linux | Windows]
     ├── ssh_keygen/       [Linux | Windows]
-    └── healthcheck/      [Linux | Windows]
+    ├── healthcheck/      [Linux | Windows]
+    └── proxmox_snapshot/ [Linux | Windows]
 ```
 
 Estructura interna de cada rol con split de SO:
@@ -791,6 +794,28 @@ backup_remote_password_windows: "{{ vault_backup_pass }}"
 
 ---
 
+### Infraestructura
+
+#### `proxmox_snapshot` `Linux | Windows`
+Crea un snapshot de la VM en Proxmox antes de cualquier operación. Consulta la API REST de Proxmox desde `localhost` (el contenedor Ansible), localiza la VM por nombre coincidente con el host de Ansible, crea el snapshot y espera a que termine. Si el snapshot falla, el playbook se detiene y no continúa.
+
+| Variable | Defecto | Descripción |
+|---|---|---|
+| `proxmox_host` | `YOUR_PROXMOX_IP` | IP del nodo Proxmox |
+| `proxmox_port` | `8006` | Puerto de la API REST |
+| `proxmox_user` | `root@pam` | Usuario de autenticación |
+| `proxmox_token_name` | `YOUR_TOKEN_NAME` | Nombre del API token |
+| `proxmox_token_secret` | `{{ vault_proxmox_token_secret }}` | Secreto del token — definir en vault |
+| `proxmox_node` | `YOUR_PROXMOX_NODE` | Nombre del nodo Proxmox |
+| `proxmox_snapshot_name` | `ansible_pre-update` | Nombre del snapshot (fijo, se sobreescribe en cada ejecución) |
+| `proxmox_snapshot_description` | `Snapshot automático pre-actualización — Ansible` | Descripción del snapshot |
+| `proxmox_task_retries` | `24` | Intentos de polling para esperar al snapshot |
+| `proxmox_task_delay` | `5` | Segundos entre cada intento de polling |
+
+> El nombre del host en Ansible (`inventory_hostname`) debe coincidir exactamente con el nombre de la VM en Proxmox para que el rol localice el VMID automáticamente.
+
+---
+
 ## Playbooks
 
 Cada playbook es independiente — no define variables, solo orquesta roles. Toda la configuración vive en los defaults del rol.
@@ -814,6 +839,7 @@ Cada playbook es independiente — no define variables, solo orquesta roles. Tod
 | `setup_backup_local.yml` | backup_local | |
 | `setup_backup_remote.yml` | backup_remote | |
 | `setup_ssh_keygen.yml` | ssh_keygen | |
+| `snapshot_and_update.yml` | proxmox_snapshot, update | Snapshot en Proxmox antes de actualizar — aborta si el snapshot falla |
 
 ---
 
@@ -973,8 +999,10 @@ web02 ansible_host=192.168.1.11
 db01 ansible_host=192.168.1.20
 
 [local]
-localhost ansible_connection=local
+localhost ansible_connection=local ansible_python_interpreter=/usr/local/bin/python3
 ```
+
+> `ansible_python_interpreter` en `localhost` apunta a `/usr/local/bin/python3` porque es la ruta dentro del contenedor Ansible. Los hosts Linux usan `/usr/bin/python3` definido en `[all:vars]`.
 
 ---
 
@@ -1075,6 +1103,7 @@ Introduce la contraseña del vault cuando se solicite. Guárdala también en `do
 | `vault_mysql_root` | `mariadb` | Contraseña de root de MariaDB |
 | `vault_user_hash` | `user_create` | Hash de contraseña de usuario del sistema |
 | `vault_backup_pass` | `backup_remote` | Contraseña del recurso UNC de backup (Windows) |
+| `vault_proxmox_token_secret` | `proxmox_snapshot` | Secreto del API token de Proxmox |
 
 ### Añadir un nuevo secreto
 
