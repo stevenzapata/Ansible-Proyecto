@@ -10,7 +10,7 @@ docker_hyperv_isolation: true
 docker_allow_reboot: true
 
 # Si es true, el sistema se reinicia automáticamente tras instalar actualizaciones
-update_allow_reboot: true
+update_allow_reboot: false
 
 docker_daemon_options:
   log-driver: json-file

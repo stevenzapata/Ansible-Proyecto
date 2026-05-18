@@ -19,9 +19,54 @@
     msg: "No se encontró ninguna VM en Proxmox con el nombre '{{ inventory_hostname }}'. Comprueba que el nombre del host en Ansible coincide exactamente con el nombre de la VM en Proxmox."
   when: proxmox_matching_vms | length == 0
 
-- name: Establecer VMID para {{ inventory_hostname }}
+- name: Establecer VMID y nombre del snapshot para {{ inventory_hostname }}
   ansible.builtin.set_fact:
     proxmox_vmid: "{{ proxmox_matching_vms[0].vmid }}"
+    proxmox_snapshot_name: "{{ proxmox_snapshot_prefix }}-{{ ansible_date_time.date }}"
+
+- name: Obtener snapshots existentes de {{ inventory_hostname }}
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vmid }}/snapshot"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+  register: proxmox_existing_snapshots
+  delegate_to: localhost
+  become: false
+
+- name: Identificar snapshots ansible_pre-update anteriores
+  ansible.builtin.set_fact:
+    proxmox_old_snapshots: "{{ proxmox_existing_snapshots.json.data | selectattr('name', 'match', '^' + proxmox_snapshot_prefix) | rejectattr('name', 'equalto', 'current') | list }}"
+
+- name: Borrar snapshot anterior {{ item.name }}
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vmid }}/snapshot/{{ item.name }}"
+    method: DELETE
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+    status_code: 200
+  register: proxmox_delete_task
+  delegate_to: localhost
+  become: false
+  loop: "{{ proxmox_old_snapshots }}"
+
+- name: Esperar a que se borre el snapshot anterior
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/tasks/{{ item.json.data | urlencode }}/status"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+  register: proxmox_delete_status
+  delegate_to: localhost
+  become: false
+  until: proxmox_delete_status.json.data.status != "running"
+  retries: "{{ proxmox_task_retries }}"
+  delay: "{{ proxmox_task_delay }}"
+  loop: "{{ proxmox_delete_task.results }}"
+  when: proxmox_old_snapshots | length > 0
 
 - name: Crear snapshot {{ proxmox_snapshot_name }} en {{ inventory_hostname }} (VMID {{ proxmox_vmid }})
   ansible.builtin.uri:
