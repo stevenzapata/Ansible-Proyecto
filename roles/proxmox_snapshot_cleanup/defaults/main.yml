@@ -1,0 +1,10 @@
+---
+proxmox_host: YOUR_PROXMOX_IP
+proxmox_port: 8006
+proxmox_user: root@pam
+proxmox_token_name: YOUR_TOKEN_NAME
+proxmox_token_secret: "{{ vault_proxmox_token_secret }}"
+proxmox_node: YOUR_PROXMOX_NODE
+proxmox_snapshot_prefix: ansible_pre-update
+proxmox_task_retries: 24
+proxmox_task_delay: 5

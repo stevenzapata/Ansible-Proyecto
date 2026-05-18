@@ -1,0 +1,91 @@
+---
+- name: Obtener lista de VMs de Proxmox
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+  register: proxmox_vms
+
+- name: Obtener snapshots de cada VM
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ item.vmid }}/snapshot"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+  loop: "{{ proxmox_vms.json.data }}"
+  loop_control:
+    label: "{{ item.name }} (VMID {{ item.vmid }})"
+  register: proxmox_all_snapshots
+
+- name: Construir lista de snapshots a eliminar
+  ansible.builtin.set_fact:
+    proxmox_snapshots_to_delete: >-
+      {{ proxmox_snapshots_to_delete | default([]) +
+         (item.json.data
+          | selectattr('name', 'match', '^' + proxmox_snapshot_prefix)
+          | rejectattr('name', 'equalto', 'current')
+          | map('combine', {'vmid': item.item.vmid, 'vm_name': item.item.name})
+          | list) }}
+  loop: "{{ proxmox_all_snapshots.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+
+- name: No hay snapshots con prefijo {{ proxmox_snapshot_prefix }}
+  ansible.builtin.debug:
+    msg: "No se encontraron snapshots con prefijo '{{ proxmox_snapshot_prefix }}' en ninguna VM."
+  when: proxmox_snapshots_to_delete | default([]) | length == 0
+
+- name: Eliminar snapshot {{ item.name }} de {{ item.vm_name }} (VMID {{ item.vmid }})
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ item.vmid }}/snapshot/{{ item.name }}"
+    method: DELETE
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+    status_code: 200
+  loop: "{{ proxmox_snapshots_to_delete | default([]) }}"
+  loop_control:
+    label: "{{ item.vm_name }} — {{ item.name }}"
+  register: proxmox_delete_tasks
+  when: proxmox_snapshots_to_delete | default([]) | length > 0
+
+- name: Esperar confirmación de borrado
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/tasks/{{ item.json.data | urlencode }}/status"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+  register: proxmox_delete_status
+  until: proxmox_delete_status.json.data.status != "running"
+  retries: "{{ proxmox_task_retries }}"
+  delay: "{{ proxmox_task_delay }}"
+  loop: "{{ proxmox_delete_tasks.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.vm_name }} — {{ item.item.name }}"
+  when: proxmox_snapshots_to_delete | default([]) | length > 0
+
+- name: Recopilar resultados del borrado
+  ansible.builtin.set_fact:
+    proxmox_delete_ok: "{{ proxmox_delete_status.results | default([]) | selectattr('json.data.exitstatus', 'equalto', 'OK') | list }}"
+    proxmox_delete_failed: "{{ proxmox_delete_status.results | default([]) | rejectattr('json.data.exitstatus', 'equalto', 'OK') | list }}"
+  when: proxmox_snapshots_to_delete | default([]) | length > 0
+
+- name: Resumen — snapshots eliminados correctamente
+  ansible.builtin.debug:
+    msg: "OK — {{ item.item.item.vm_name }} — {{ item.item.item.name }}"
+  loop: "{{ proxmox_delete_ok | default([]) }}"
+  loop_control:
+    label: "{{ item.item.item.vm_name }}"
+  when: proxmox_delete_ok | default([]) | length > 0
+
+- name: Resumen — snapshots que no se pudieron eliminar
+  ansible.builtin.debug:
+    msg: "FALLO — {{ item.item.item.vm_name }} — {{ item.item.item.name }}: {{ item.json.data.exitstatus | default('sin respuesta') }}"
+  loop: "{{ proxmox_delete_failed | default([]) }}"
+  loop_control:
+    label: "{{ item.item.item.vm_name }}"
+  when: proxmox_delete_failed | default([]) | length > 0

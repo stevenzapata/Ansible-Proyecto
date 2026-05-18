@@ -1,0 +1,7 @@
+---
+- name: Eliminar snapshots ansible_pre-update de todas las VMs en Proxmox
+  hosts: localhost
+  gather_facts: false
+
+  roles:
+    - role: proxmox_snapshot_cleanup
