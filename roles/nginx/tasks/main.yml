@@ -1,4 +1,9 @@
 ---
-- name: Detectar SO e incluir tareas correspondientes
+- name: Verificar que el rol nginx solo se ejecuta en Linux
+  ansible.builtin.fail:
+    msg: "El rol nginx solo está soportado en Linux. En Windows usa IIS."
+  when: ansible_os_family == "Windows"
+
+- name: Incluir tareas Linux
   ansible.builtin.include_tasks:
-    file: "{{ 'windows' if ansible_os_family == 'Windows' else 'linux' }}.yml"
+    file: linux.yml

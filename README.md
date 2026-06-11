@@ -99,7 +99,7 @@ Ansible-Proyecto/
     ├── common/           [Linux | Windows]
     ├── update/           [Linux | Windows]
     ├── ssh/              [Linux | Windows]
-    ├── nginx/            [Linux | Windows]
+    ├── nginx/            [Linux]
     ├── apache/           [Linux | Windows]
     ├── postgresql/       [Linux | Windows]
     ├── mariadb/          [Linux | Windows]
@@ -244,8 +244,8 @@ ssh_users:
 
 ### Servidores web
 
-#### `nginx` `Linux | Windows`
-Instala y configura Nginx con soporte de vhosts.
+#### `nginx` `Linux`
+Instala y configura Nginx con soporte de vhosts. Solo Linux — en Windows Server el servidor web nativo es IIS.
 
 | Variable | Defecto | Descripción |
 |---|---|---|
@@ -254,16 +254,12 @@ Instala y configura Nginx con soporte de vhosts.
 | `nginx_deploy_test_page` | `true` | Desplegar página de prueba |
 | `nginx_ssl_enabled` | `false` | Activar HTTPS |
 | `nginx_ssl_port` | `443` | Puerto SSL |
-| `nginx_webroot` | `/var/www/html` | Directorio raíz (Linux) |
-| `nginx_ssl_cert` | `/etc/ssl/certs/nginx.crt` | Ruta al certificado (Linux) |
-| `nginx_ssl_key` | `/etc/ssl/private/nginx.key` | Ruta a la clave privada (Linux) |
-| `nginx_user` | `www-data` | Usuario del proceso nginx (Linux) |
-| `nginx_worker_processes` | `auto` | Número de workers (Linux) |
-| `nginx_worker_connections` | `1024` | Conexiones por worker (Linux) |
-| `nginx_webroot_windows` | `C:\tools\nginx\html` | Directorio raíz (Windows) |
-| `nginx_conf_dir_windows` | `C:\tools\nginx\conf` | Directorio de configuración (Windows) |
-| `nginx_ssl_cert_windows` | `C:\tools\nginx\conf\ssl\nginx.crt` | Ruta al certificado (Windows) |
-| `nginx_ssl_key_windows` | `C:\tools\nginx\conf\ssl\nginx.key` | Ruta a la clave privada (Windows) |
+| `nginx_webroot` | `/var/www/html` | Directorio raíz |
+| `nginx_ssl_cert` | `/etc/ssl/certs/nginx.crt` | Ruta al certificado |
+| `nginx_ssl_key` | `/etc/ssl/private/nginx.key` | Ruta a la clave privada |
+| `nginx_user` | `www-data` | Usuario del proceso nginx |
+| `nginx_worker_processes` | `auto` | Número de workers |
+| `nginx_worker_connections` | `1024` | Conexiones por worker |
 
 ---
 
@@ -822,6 +818,21 @@ Crea un snapshot de la VM en Proxmox antes de cualquier operación. Consulta la 
 Elimina todos los snapshots con prefijo `ansible_pre-update` de **todas las VMs** del nodo Proxmox. Corre íntegramente contra `localhost` sin necesidad de conectar a los hosts gestionados. Al finalizar muestra un resumen separado de snapshots eliminados correctamente y los que fallaron (por ejemplo, VMs con TPM activo encendidas).
 
 > Las VMs con TPM requieren estar apagadas para poder borrar sus snapshots. Si la VM está encendida, el snapshot se reporta como fallido pero el playbook continúa con las demás VMs.
+
+**Solución recomendada — desactivar TPM si no es necesario:**
+
+Windows Server no requiere TPM (es requisito de Windows 11, no de Windows Server). Si no lo necesitas, quítalo para evitar esta limitación:
+
+*Proxmox* — con la VM apagada:
+1. Selecciona la VM → **Hardware**
+2. Selecciona el dispositivo **TPM State**
+3. Pulsa **Remove** y confirma
+
+*vSphere* — con la VM apagada:
+1. Clic derecho sobre la VM → **Edit Settings**
+2. Pestaña **Virtual Hardware**
+3. Localiza **Trusted Platform Module** y pulsa el icono de eliminar
+4. Guarda los cambios
 
 Usa las mismas variables de conexión que `proxmox_snapshot` (`proxmox_host`, `proxmox_token_secret`, etc.).
 
