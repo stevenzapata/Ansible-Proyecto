@@ -23,11 +23,3 @@ apache_vhost_dir: /etc/apache2/sites-available
 apache_webroot: /var/www/html
 apache_ssl_cert: /etc/ssl/certs/apache.crt
 apache_ssl_key: /etc/ssl/private/apache.key
-
-# ── Windows ──────────────────────────────────────────────────────────────────
-# Chocolatey instala apache-httpd en C:\Apache24 por defecto
-apache_service_name_windows: Apache2.4
-apache_vhost_dir_windows: 'C:\Apache24\conf\extra'
-apache_webroot_windows: 'C:\Apache24\htdocs'
-apache_ssl_cert_windows: 'C:\Apache24\conf\ssl\apache.crt'
-apache_ssl_key_windows: 'C:\Apache24\conf\ssl\apache.key'

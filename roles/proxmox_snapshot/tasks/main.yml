@@ -39,35 +39,6 @@
   ansible.builtin.set_fact:
     proxmox_old_snapshots: "{{ proxmox_existing_snapshots.json.data | selectattr('name', 'match', '^' + proxmox_snapshot_prefix) | rejectattr('name', 'equalto', 'current') | list }}"
 
-- name: Borrar snapshot anterior {{ item.name }}
-  ansible.builtin.uri:
-    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vmid }}/snapshot/{{ item.name }}"
-    method: DELETE
-    headers:
-      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
-    validate_certs: false
-    status_code: 200
-  register: proxmox_delete_task
-  delegate_to: localhost
-  become: false
-  loop: "{{ proxmox_old_snapshots }}"
-
-- name: Esperar a que se borre el snapshot anterior
-  ansible.builtin.uri:
-    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/tasks/{{ item.json.data | urlencode }}/status"
-    method: GET
-    headers:
-      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
-    validate_certs: false
-  register: proxmox_delete_status
-  delegate_to: localhost
-  become: false
-  until: proxmox_delete_status.json.data.status != "running"
-  retries: "{{ proxmox_task_retries }}"
-  delay: "{{ proxmox_task_delay }}"
-  loop: "{{ proxmox_delete_task.results }}"
-  when: proxmox_old_snapshots | length > 0
-
 - name: Crear snapshot {{ proxmox_snapshot_name }} en {{ inventory_hostname }} (VMID {{ proxmox_vmid }})
   ansible.builtin.uri:
     url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vmid }}/snapshot"
@@ -102,3 +73,45 @@
   ansible.builtin.fail:
     msg: "El snapshot '{{ proxmox_snapshot_name }}' falló para {{ inventory_hostname }} (VMID {{ proxmox_vmid }}): {{ proxmox_task_status.json.data.exitstatus | default('sin respuesta') }}"
   when: proxmox_task_status.json.data.exitstatus | default('') != "OK"
+
+- name: Borrar snapshot anterior {{ item.name }}
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ proxmox_vmid }}/snapshot/{{ item.name }}"
+    method: DELETE
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+    status_code: 200
+  register: proxmox_delete_task
+  delegate_to: localhost
+  become: false
+  loop: "{{ proxmox_old_snapshots }}"
+  when: proxmox_old_snapshots | length > 0
+
+- name: Esperar a que se borre el snapshot anterior
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_host }}:{{ proxmox_port }}/api2/json/nodes/{{ proxmox_node }}/tasks/{{ item.json.data | urlencode }}/status"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}!{{ proxmox_token_name }}={{ proxmox_token_secret }}"
+    validate_certs: false
+  register: proxmox_delete_status
+  delegate_to: localhost
+  become: false
+  until: proxmox_delete_status.json.data.status != "running"
+  retries: "{{ proxmox_task_retries }}"
+  delay: "{{ proxmox_task_delay }}"
+  loop: "{{ proxmox_delete_task.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: proxmox_old_snapshots | length > 0
+
+- name: Avisar de snapshots anteriores que no se pudieron borrar
+  ansible.builtin.debug:
+    msg: "AVISO — no se pudo borrar el snapshot anterior '{{ item.item.item.name }}' de {{ inventory_hostname }} (VMID {{ proxmox_vmid }}): {{ item.json.data.exitstatus | default('sin respuesta') }}"
+  loop: "{{ proxmox_delete_status.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.item.name }}"
+  when:
+    - proxmox_old_snapshots | length > 0
+    - item.json.data.exitstatus | default('') != "OK"

@@ -100,7 +100,7 @@ Ansible-Proyecto/
     ├── update/           [Linux | Windows]
     ├── ssh/              [Linux | Windows]
     ├── nginx/            [Linux]
-    ├── apache/           [Linux | Windows]
+    ├── apache/           [Linux]
     ├── postgresql/       [Linux | Windows]
     ├── mariadb/          [Linux | Windows]
     ├── docker_install/   [Linux | Windows]
@@ -263,8 +263,8 @@ Instala y configura Nginx con soporte de vhosts. Solo Linux — en Windows Serve
 
 ---
 
-#### `apache` `Linux | Windows`
-Instala y configura Apache con soporte de VirtualHosts.
+#### `apache` `Linux`
+Instala y configura Apache con soporte de VirtualHosts. Solo Linux; en Windows Server usa IIS.
 
 | Variable | Defecto | Descripción |
 |---|---|---|
@@ -276,14 +276,9 @@ Instala y configura Apache con soporte de VirtualHosts.
 | `apache_deploy_test_page` | `true` | Desplegar página de prueba |
 | `apache_ssl_enabled` | `false` | Activar HTTPS |
 | `apache_ssl_port` | `443` | Puerto SSL |
-| `apache_webroot` | `/var/www/html` | Directorio raíz (Linux) |
-| `apache_ssl_cert` | `/etc/ssl/certs/apache.crt` | Ruta al certificado (Linux) |
-| `apache_ssl_key` | `/etc/ssl/private/apache.key` | Ruta a la clave privada (Linux) |
-| `apache_webroot_windows` | `C:\Apache24\htdocs` | Directorio raíz (Windows) |
-| `apache_service_name_windows` | `Apache2.4` | Nombre del servicio (Windows) |
-| `apache_vhost_dir_windows` | `C:\Apache24\conf\extra` | Directorio de vhosts (Windows) |
-| `apache_ssl_cert_windows` | `C:\Apache24\conf\ssl\apache.crt` | Ruta al certificado (Windows) |
-| `apache_ssl_key_windows` | `C:\Apache24\conf\ssl\apache.key` | Ruta a la clave privada (Windows) |
+| `apache_webroot` | `/var/www/html` | Directorio raíz |
+| `apache_ssl_cert` | `/etc/ssl/certs/apache.crt` | Ruta al certificado |
+| `apache_ssl_key` | `/etc/ssl/private/apache.key` | Ruta a la clave privada |
 
 ---
 
@@ -799,10 +794,10 @@ Crea un snapshot de la VM en Proxmox antes de cualquier operación. Consulta la 
 
 | Variable | Defecto | Descripción |
 |---|---|---|
-| `proxmox_host` | `YOUR_PROXMOX_IP` | IP del nodo Proxmox |
+| `proxmox_host` | `""` | IP o FQDN del nodo Proxmox — definir en group_vars |
 | `proxmox_port` | `8006` | Puerto de la API REST |
-| `proxmox_user` | `root@pam` | Usuario de autenticación |
-| `proxmox_token_name` | `YOUR_TOKEN_NAME` | Nombre del API token |
+| `proxmox_user` | `""` | Usuario Proxmox, ej: `root@pam` — definir en group_vars |
+| `proxmox_token_name` | `""` | Nombre del API token — definir en group_vars |
 | `proxmox_token_secret` | `{{ vault_proxmox_token_secret }}` | Secreto del token — definir en vault |
 | `proxmox_node` | `YOUR_PROXMOX_NODE` | Nombre del nodo Proxmox |
 | `proxmox_snapshot_prefix` | `ansible_pre-update` | Prefijo del snapshot — nombre final: `ansible_pre-update-2026-05-18` |
@@ -1026,6 +1021,8 @@ localhost ansible_connection=local ansible_python_interpreter=/usr/local/bin/pyt
 ```
 
 > `ansible_python_interpreter` en `localhost` apunta a `/usr/local/bin/python3` porque es la ruta dentro del contenedor Ansible. Los hosts Linux usan `/usr/bin/python3` definido en `[all:vars]`.
+
+> **Nota de seguridad:** `inventory/hosts` contiene IPs reales y nombres de usuario de la infraestructura. No publicar este fichero en repositorios públicos.
 
 ---
 

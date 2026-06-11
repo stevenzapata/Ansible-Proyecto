@@ -1,10 +1,10 @@
 ---
-proxmox_host: YOUR_PROXMOX_IP
+proxmox_host: ""           # IP o FQDN del nodo Proxmox — definir en group_vars o inventory
 proxmox_port: 8006
-proxmox_user: root@pam
-proxmox_token_name: YOUR_TOKEN_NAME
+proxmox_user: ""           # Usuario Proxmox, ej: root@pam — definir en group_vars o inventory
+proxmox_token_name: ""     # Nombre del API token — definir en group_vars o inventory
 proxmox_token_secret: "{{ vault_proxmox_token_secret }}"
-proxmox_node: YOUR_PROXMOX_NODE
+proxmox_node: ""           # Nombre del nodo Proxmox, ej: pve — definir en group_vars o inventory
 proxmox_snapshot_prefix: ansible_pre-update
 proxmox_snapshot_description: "Snapshot automático pre-actualización — Ansible"
 proxmox_task_retries: 24
